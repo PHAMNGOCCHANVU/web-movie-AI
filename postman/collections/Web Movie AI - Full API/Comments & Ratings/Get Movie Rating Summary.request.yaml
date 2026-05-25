@@ -1,0 +1,4 @@
+$kind: http-request
+name: Get Movie Rating Summary
+method: GET
+url: '{{base_url}}/movies/{{movie_id}}/ratings'

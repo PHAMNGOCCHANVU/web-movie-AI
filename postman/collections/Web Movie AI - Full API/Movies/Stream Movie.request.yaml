@@ -1,0 +1,9 @@
+$kind: http-request
+name: Stream Movie
+method: GET
+url: '{{base_url}}/movies/{{movie_id}}/stream'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

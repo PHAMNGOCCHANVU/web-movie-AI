@@ -1,0 +1,18 @@
+$kind: http-request
+name: Admin Get All Users
+method: GET
+url: '{{base_url}}/admin/users'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+  - key: role
+    value: ''
+  - key: status
+    value: ''
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

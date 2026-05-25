@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Profile
+method: GET
+url: '{{base_url}}/user/profile'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

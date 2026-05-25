@@ -1,0 +1,4 @@
+$kind: http-request
+name: Get All Genres
+method: GET
+url: '{{base_url}}/genres'

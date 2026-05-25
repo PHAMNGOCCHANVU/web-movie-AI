@@ -1,0 +1,20 @@
+$kind: http-request
+name: Admin Get All Transactions
+method: GET
+url: '{{base_url}}/admin/transactions'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+  - key: status
+    value: ''
+  - key: from
+    value: '2024-01-01'
+  - key: to
+    value: '2024-12-31'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

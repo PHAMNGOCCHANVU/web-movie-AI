@@ -1,0 +1,4 @@
+$kind: http-request
+name: Get Movie Trailer
+method: GET
+url: '{{base_url}}/movies/{{movie_id}}/trailer'

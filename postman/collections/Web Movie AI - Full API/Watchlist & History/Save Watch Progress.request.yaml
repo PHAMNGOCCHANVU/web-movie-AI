@@ -1,0 +1,17 @@
+$kind: http-request
+name: Save Watch Progress
+method: POST
+url: '{{base_url}}/user/watch-history'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "movie_id": 1,
+      "episode_id": 1,
+      "progress_seconds": 1200
+    }

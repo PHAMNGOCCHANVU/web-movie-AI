@@ -1,0 +1,9 @@
+$kind: http-request
+name: Sync Genres from TMDB
+method: POST
+url: '{{base_url}}/admin/tmdb/sync-genres'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

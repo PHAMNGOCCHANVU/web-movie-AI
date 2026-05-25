@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get AI Recommendations
+method: GET
+url: '{{base_url}}/ai/recommendations'
+queryParams:
+  - key: movie_id
+    value: '{{movie_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

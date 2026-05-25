@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Comment Sentiment Analysis
+method: GET
+url: '{{base_url}}/admin/comments/{{comment_id}}/sentiment'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

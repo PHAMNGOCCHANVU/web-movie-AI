@@ -1,0 +1,13 @@
+$kind: http-request
+name: VNPay IPN Webhook
+method: POST
+url: '{{base_url}}/payment/vnpay/ipn'
+body:
+  type: json
+  content: |-
+    {
+      "vnp_ResponseCode": "00",
+      "vnp_TxnRef": "TXN123456",
+      "vnp_Amount": "10000000",
+      "vnp_SecureHash": "hash_value_here"
+    }

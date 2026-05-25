@@ -1,0 +1,15 @@
+$kind: http-request
+name: Create VNPay Payment
+method: POST
+url: '{{base_url}}/payment/vnpay/create'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "package_id": 1
+    }

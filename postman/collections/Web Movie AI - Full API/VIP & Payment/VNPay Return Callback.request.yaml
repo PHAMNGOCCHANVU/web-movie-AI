@@ -1,0 +1,13 @@
+$kind: http-request
+name: VNPay Return Callback
+method: GET
+url: '{{base_url}}/payment/vnpay/return'
+queryParams:
+  - key: vnp_ResponseCode
+    value: '00'
+  - key: vnp_TxnRef
+    value: 'TXN123456'
+  - key: vnp_Amount
+    value: '10000000'
+  - key: vnp_SecureHash
+    value: 'hash_value_here'

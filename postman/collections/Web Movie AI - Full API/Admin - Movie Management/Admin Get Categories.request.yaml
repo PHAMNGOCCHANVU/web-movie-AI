@@ -1,0 +1,9 @@
+$kind: http-request
+name: Admin Get Categories
+method: GET
+url: '{{base_url}}/admin/categories'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

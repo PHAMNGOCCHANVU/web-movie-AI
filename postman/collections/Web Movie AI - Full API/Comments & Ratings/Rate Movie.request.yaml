@@ -1,0 +1,15 @@
+$kind: http-request
+name: Rate Movie
+method: POST
+url: '{{base_url}}/movies/{{movie_id}}/ratings'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "score": 8
+    }

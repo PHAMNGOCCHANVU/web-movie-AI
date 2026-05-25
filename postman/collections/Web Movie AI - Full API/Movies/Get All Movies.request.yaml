@@ -1,0 +1,15 @@
+$kind: http-request
+name: Get All Movies
+method: GET
+url: '{{base_url}}/movies'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+  - key: genre_id
+    value: ''
+  - key: year
+    value: ''
+  - key: type
+    value: 'all'

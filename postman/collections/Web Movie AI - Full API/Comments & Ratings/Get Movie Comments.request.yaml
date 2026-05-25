@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Movie Comments
+method: GET
+url: '{{base_url}}/movies/{{movie_id}}/comments'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'

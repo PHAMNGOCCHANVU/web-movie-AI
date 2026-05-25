@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Newly Updated Movies
+method: GET
+url: '{{base_url}}/movies/new-updated'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'

@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Movies By Genre
+method: GET
+url: '{{base_url}}/genres/{{genre_id}}/movies'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'

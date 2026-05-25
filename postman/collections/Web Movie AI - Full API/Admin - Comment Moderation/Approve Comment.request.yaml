@@ -1,0 +1,9 @@
+$kind: http-request
+name: Approve Comment
+method: PATCH
+url: '{{base_url}}/admin/comments/{{comment_id}}/approve'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

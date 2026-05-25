@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Sentiment Analysis Overview
+method: GET
+url: '{{base_url}}/admin/dashboard/sentiment'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

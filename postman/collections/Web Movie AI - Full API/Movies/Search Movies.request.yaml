@@ -1,0 +1,15 @@
+$kind: http-request
+name: Search Movies
+method: GET
+url: '{{base_url}}/movies/search'
+queryParams:
+  - key: keyword
+    value: 'avengers'
+  - key: year
+    value: ''
+  - key: genre_id
+    value: ''
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'

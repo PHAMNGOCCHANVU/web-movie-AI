@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get Top Hot Movies
+method: GET
+url: '{{base_url}}/admin/dashboard/top-movies'
+queryParams:
+  - key: limit
+    value: '10'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

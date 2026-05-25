@@ -1,0 +1,11 @@
+$kind: http-request
+name: Login
+method: POST
+url: '{{base_url}}/auth/login'
+body:
+  type: json
+  content: |-
+    {
+      "email": "user@example.com",
+      "password": "password123"
+    }

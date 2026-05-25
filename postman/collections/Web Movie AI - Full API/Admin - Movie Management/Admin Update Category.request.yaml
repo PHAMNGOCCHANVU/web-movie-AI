@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Admin Update Category Visibility/Order'
+method: PUT
+url: '{{base_url}}/admin/categories/{{category_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "is_visible": true,
+      "sort_order": 1
+    }

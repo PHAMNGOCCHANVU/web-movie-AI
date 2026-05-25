@@ -1,0 +1,16 @@
+$kind: http-request
+name: Admin Update Movie
+method: PUT
+url: '{{base_url}}/admin/movies/{{movie_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "is_premium": true,
+      "is_pinned": false
+    }

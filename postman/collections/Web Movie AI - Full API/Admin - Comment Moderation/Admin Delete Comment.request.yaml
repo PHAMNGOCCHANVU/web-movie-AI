@@ -1,0 +1,9 @@
+$kind: http-request
+name: Admin Delete Comment
+method: DELETE
+url: '{{base_url}}/admin/comments/{{comment_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

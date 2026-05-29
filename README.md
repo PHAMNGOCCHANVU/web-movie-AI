@@ -1,59 +1,158 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🎬 HỆ THỐNG BACKEND CORE: WEB MOVIE AI (FREEMIUM)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Dự án nghiên cứu và phát triển cổng giao tiếp dữ liệu (Backend API Core) phục vụ hệ thống nền tảng Xem phim trực tuyến ứng dụng Trợ lý ảo AI kiểm duyệt bình luận và tích hợp Cổng thanh toán quốc gia VNPay.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🛠️ 1. TỔNG QUAN CÔNG NGHỆ VÀ MÔI TRƯỜNG LÕI
+* **Framework hạt nhân:** Laravel 11.x / RESTful API Architecture.
+* **Mô hình tổ chức:** Model - View - Controller (MVC) kết hợp **Service Pattern** tách biệt logic nghiệp vụ.
+* **Hệ quản trị cơ sở dữ liệu:** MySQL 8.0+.
+* **Phân hệ bảo mật cổng API:** Laravel Sanctum (Token-based Authentication).
+* **Thư viện tích hợp:** GuzzleHTTP (HTTP Client phục vụ kết nối TMDB API và Google Gemini AI API).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 📊 2. SƠ ĐỒ THỰC THỂ QUAN HỆ (ERD DATABASE SCHEMA)
+Sơ đồ mô tả cấu trúc các bảng vật lý, quy tắc ràng buộc toàn vẹn dữ liệu khóa ngoại và cơ chế phân cấp quyền hạn, quản lý gói VIP cùng luồng kiểm duyệt dữ liệu AI.
 
-## Learning Laravel
+```mermaid
+erDiagram
+    ROLES ||--o{ USERS : "has"
+    VIP_PACKAGES ||--o{ USERS : "subscribes_to"
+    USERS ||--o{ TRANSACTIONS : "makes"
+    USERS ||--o{ COMMENTS : "writes"
+    MOVIES ||--o{ COMMENTS : "receives"
+    USERS }|--|{ MOVIES : "interacts (movie_user)"
+    MOVIES }|--|{ GENRES : "belongs_to (genre_movie)"
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+    ROLES {
+        int id PK
+        string name
+    }
+    VIP_PACKAGES {
+        int id PK
+        string name
+        decimal price
+        int duration_days
+    }
+    USERS {
+        int id PK
+        string name
+        string email
+        string password
+        int role_id FK
+        int vip_package_id FK
+        timestamp vip_expires_at
+    }
+    TRANSACTIONS {
+        int id PK
+        int user_id FK
+        string vnp_txn_ref UK
+        decimal amount
+        string status
+        string vnp_transaction_no
+    }
+    MOVIES {
+        int id PK
+        int tmdb_id UK
+        boolean is_premium
+        boolean is_pinned
+    }
+    GENRES {
+        int id PK
+        int tmdb_id UK
+        string name
+    }
+    COMMENTS {
+        int id PK
+        int user_id FK
+        int movie_id FK
+        text content
+        decimal toxic_score
+        boolean is_hidden
+    }
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 💸 3. SƠ ĐỒ TUẦN TỰ (SEQUENCE DIAGRAM) - LUỒNG THANH TOÁN VNPAY
+Mô tả chi tiết đường đi của dữ liệu từ ứng dụng khách, quá trình băm bảo mật mã hóa tham số tại lớp Service, bắt gói tin bất đồng bộ từ cổng VNPay qua kênh IPN Webhook và đồng bộ hóa quyền lợi người dùng.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User (Frontend)
+    participant BE as Laravel Backend (API)
+    participant VNP as VNPay Gateway
+    participant DB as MySQL Database
 
-### Premium Partners
+    U->>BE: Yêu cầu mua gói VIP (POST /api/payment)
+    BE->>DB: Khởi tạo Transaction (Status: pending)
+    BE->>BE: Xây dựng URL thanh toán & Tạo chữ ký (Secure Hash)
+    BE-->>U: Trả về Payment URL (JSON Response)
+    U->>VNP: Chuyển hướng sang cổng VNPay & Tiến hành thanh toán
+    VNP-->>U: Hoàn thành, redirect về ứng dụng khách (Return URL)
+    VNP->>BE: Gọi ngầm URL IPN Webhook báo kết quả xử lý
+    BE->>BE: Kiểm tra tính toàn vẹn dữ liệu (Verify Checksum)
+    alt Giao dịch thành công (vnp_ResponseCode == 00)
+        BE->>DB: Cập nhật Transaction (status: success)
+        BE->>DB: Cập nhật quyền VIP & Thời gian hết hạn cho User
+    else Giao dịch thất bại
+        BE->>DB: Cập nhật Transaction (status: failed)
+    end
+    BE-->>VNP: Phản hồi kết quả xử lý IPN thành công (HTTP 200 OK)
+    U->>BE: Kiểm tra trạng thái đơn hàng thời gian thực
+    BE-->>U: Phản hồi kết quả quyền lợi VIP mới (JSON)
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 📂 4. CẤU TRÚC THƯ MỤC KIẾN TRÚC NÂNG CAO (SERVICE PATTERN)
+Hệ thống triển khai phân tách lớp xử lý giúp mã nguồn tại Controllers tối giản, toàn bộ logic lõi tương tác với bên thứ ba được đóng gói tại tầng `app/Services/`:
+```text
+web-movie-AI/
+├── app/
+│   ├── Http/
+│   │   └── Controllers/     # Tiếp nhận Requests và trả về phản hồi JSON
+│   ├── Models/              # Khai báo cấu trúc Model và định nghĩa Relationships
+│   └── Services/            # TẦNG XỬ LÝ NGHIỆP VỤ ĐỘC LẬP (CORE LOGIC)
+│       ├── TMDBService.php      # Đóng gói logic gọi API lấy dữ liệu phim ngoài
+│       ├── GeminiAiService.php  # Xử lý chấm điểm độc hại và kiểm duyệt nội dung
+│       └── VNPayService.php     # Xử lý băm mã hash, tạo URL và verify IPN Webhook
+├── database/
+│   └── migrations/          # Hệ thống quản lý phiên bản cơ sở dữ liệu vật lý
+└── routes/
+    └── api.php              # Phân hệ quản lý định tuyến cổng API tập trung
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 🚀 5. HƯỚNG DẪN KHỞI CHẠY DỰ ÁN CHO THÀNH VIÊN (SETUP GUIDE)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+**Bước 1: Tải các thư viện phụ thuộc và kích hoạt nhân dự án**
+```bash
+composer install
+```
 
-## Security Vulnerabilities
+**Bước 2: Sao chép và cấu hình tệp tin môi trường**
+Hệ thống yêu cầu tạo tệp `.env` từ khuôn mẫu có sẵn:
+```bash
+cp .env.example .env
+```
+Mở tệp `.env` ra, cấu hình tài khoản kết nối MySQL (`web_movie_ai`) và điền các mã khóa bảo mật được cấp phát tại mục `THIRD-PARTY APIs`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+**Bước 3: Khởi tạo khóa mã hóa dữ liệu hệ thống**
+```bash
+php artisan key:generate
+```
 
-## License
+**Bước 4: Đồng bộ hạ tầng bảng vật lý vào MySQL**
+```bash
+php artisan migrate
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**Bước 5: Kích hoạt máy chủ ảo nội bộ phục vụ thực nghiệm**
+```bash
+php artisan serve
+```

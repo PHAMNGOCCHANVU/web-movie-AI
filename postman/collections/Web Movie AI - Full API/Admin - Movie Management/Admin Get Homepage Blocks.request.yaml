@@ -1,7 +1,7 @@
 $kind: http-request
-name: Admin Get Categories
+name: Admin Get Homepage Blocks
 method: GET
-url: '{{base_url}}/admin/categories'
+url: '{{base_url}}/admin/homepage-blocks'
 auth:
   type: bearer
   credentials:

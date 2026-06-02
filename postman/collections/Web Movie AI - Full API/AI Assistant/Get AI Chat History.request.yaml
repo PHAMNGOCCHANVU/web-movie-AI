@@ -1,0 +1,11 @@
+$kind: http-request
+name: Get AI Chat History
+method: GET
+url: '{{base_url}}/ai/chat/history'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+description: |
+  Lịch sử tối đa 100 tin / 30 ngày gần nhất (theo đề tài).

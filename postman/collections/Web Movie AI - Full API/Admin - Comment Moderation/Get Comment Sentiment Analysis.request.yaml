@@ -2,6 +2,8 @@ $kind: http-request
 name: Get Comment Sentiment Analysis
 method: GET
 url: '{{base_url}}/admin/comments/{{comment_id}}/sentiment'
+description: |
+  Rule-based từ khóa Việt/Anh — chỉ tham khảo, không ML nặng.
 auth:
   type: bearer
   credentials:

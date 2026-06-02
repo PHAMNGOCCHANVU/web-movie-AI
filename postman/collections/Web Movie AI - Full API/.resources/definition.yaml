@@ -20,7 +20,7 @@ variables:
     value: '1'
   - key: transaction_id
     value: '1'
-  - key: category_id
+  - key: block_id
     value: '1'
-  - key: package_id
-    value: '1'
+  - key: plan_code
+    value: standard

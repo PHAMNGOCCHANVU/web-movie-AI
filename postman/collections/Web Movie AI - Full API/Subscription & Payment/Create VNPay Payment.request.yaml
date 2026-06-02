@@ -1,0 +1,19 @@
+$kind: http-request
+name: Create VNPay Payment
+method: POST
+url: '{{base_url}}/payment/vnpay/create'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "plan_code": "standard"
+    }
+description: |
+  Tạo giao dịch VNPay. amount = giá đầy đủ của gói (không prorate).
+  plan_code: "standard" | "vip"
+  transaction_type: "purchase" (mặc định khi Free mua Standard hoặc VIP).

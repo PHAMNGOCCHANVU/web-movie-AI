@@ -1,0 +1,19 @@
+$kind: http-request
+name: Admin Create Homepage Block
+method: POST
+url: '{{base_url}}/admin/homepage-blocks'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "title": "Mới cập nhật",
+      "source_type": "latest",
+      "source_ref": null,
+      "is_visible": true,
+      "sort_order": 2
+    }

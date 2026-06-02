@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get Subscription Plans
+method: GET
+url: '{{base_url}}/subscription/plans'
+description: |
+  Trả về danh sách gói cước (plan_code: standard, vip).
+  Free user dùng để chọn gói trước khi thanh toán VNPay.

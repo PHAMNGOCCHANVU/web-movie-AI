@@ -2,6 +2,9 @@ $kind: http-request
 name: AI Movie Chat Assistant
 method: POST
 url: '{{base_url}}/ai/chat'
+description: |
+  Auth bắt buộc (Free+). LLM trả text, không RAG.
+  Fallback khi lỗi: message trong chat, không crash trang.
 auth:
   type: bearer
   credentials:

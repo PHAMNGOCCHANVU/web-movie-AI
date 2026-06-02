@@ -12,5 +12,7 @@ body:
   content: |-
     {
       "is_premium": true,
-      "is_pinned": false
+      "is_pinned": false,
+      "stream_url": "https://example.com/stream/movie-1.m3u8",
+      "stream_source": "third_party_api"
     }

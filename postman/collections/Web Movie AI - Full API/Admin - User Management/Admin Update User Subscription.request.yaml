@@ -1,0 +1,19 @@
+$kind: http-request
+name: Admin Update User Subscription
+method: PATCH
+url: '{{base_url}}/admin/users/{{user_id}}/subscription'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "plan_code": "standard",
+      "subscription_status": "active",
+      "subscription_expires_at": "2026-07-01T00:00:00Z"
+    }
+description: |
+  Admin hỗ trợ chỉnh gói cước thủ công (plan_code, status, expires_at).

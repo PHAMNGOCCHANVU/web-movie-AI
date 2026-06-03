@@ -9,6 +9,8 @@ queryParams:
     value: '20'
   - key: status
     value: ''
+  - key: plan_code
+    value: ''
   - key: from
     value: '2024-01-01'
   - key: to

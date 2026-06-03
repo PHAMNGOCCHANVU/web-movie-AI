@@ -11,5 +11,8 @@ body:
   type: json
   content: |-
     {
-      "role": "vip"
+      "role": "user"
     }
+description: |
+  Phân quyền hệ thống only: "user" | "admin".
+  Không dùng role "vip" — quyền xem phim theo subscription plan.

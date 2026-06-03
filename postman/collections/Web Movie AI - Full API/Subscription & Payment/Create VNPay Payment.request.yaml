@@ -1,0 +1,25 @@
+$kind: http-request
+name: Create VNPay Payment
+method: POST
+url: '{{base_url}}/payment/vnpay/create'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "plan_code": "standard_monthly",
+      "billing_cycle": "monthly"
+    }
+description: |
+  Tạo giao dịch VNPay thanh toán gói cước.
+  
+  Parameters:
+  - plan_code: "standard_monthly" | "standard_yearly" | "vip_monthly" | "vip_yearly"
+  - billing_cycle: "monthly" | "yearly" (tùy chọn monthly/yearly pricing)
+  
+  Amount được tính dựa vào billing_cycle đã chọn.
+  transaction_type: "purchase" (mặc định khi Free mua), "upgrade" (nâng cấp), "renewal" (gia hạn)

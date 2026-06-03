@@ -8,7 +8,7 @@ queryParams:
   - key: limit
     value: '20'
   - key: status
-    value: 'pending'
+    value: visible
   - key: movie_id
     value: ''
 auth:
@@ -16,3 +16,5 @@ auth:
   credentials:
     - key: token
       value: '{{token}}'
+description: |
+  Post-moderation: status = visible | hidden (không dùng pending).

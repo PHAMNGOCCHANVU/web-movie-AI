@@ -7,3 +7,5 @@ auth:
   credentials:
     - key: token
       value: '{{token}}'
+description: |
+  Đồng bộ subscription với /auth/me (plan_code, status, expires_at).

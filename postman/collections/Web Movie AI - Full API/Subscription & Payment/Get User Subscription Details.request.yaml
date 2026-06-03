@@ -1,0 +1,36 @@
+$kind: http-request
+name: Get User Subscription Details
+method: GET
+url: '{{base_url}}/user/subscription'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+description: |
+  Lấy chi tiết gói cước hiện tại của user đã đăng nhập.
+  
+  Response example (khi có gói active):
+  {
+    "subscription_plan_id": 1,
+    "plan_code": "standard_monthly",
+    "plan_name": "Standard - Hàng tháng",
+    "subscription_status": "active",
+    "subscription_starts_at": "2026-06-01T10:00:00Z",
+    "subscription_expires_at": "2026-07-01T10:00:00Z",
+    "auto_renew": true,
+    "cancelled_at": null,
+    "cancellation_reason": null,
+    "days_remaining": 28,
+    "next_renewal_date": "2026-07-01T10:00:00Z",
+    "billing_cycle": "monthly",
+    "price": 49000
+  }
+  
+  Response example (khi không có gói):
+  {
+    "subscription_plan_id": null,
+    "plan_code": null,
+    "subscription_status": "none",
+    "message": "Bạn hiện chưa có gói cước. Vui lòng chọn gói để thanh toán."
+  }

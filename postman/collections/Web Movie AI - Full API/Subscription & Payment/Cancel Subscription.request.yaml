@@ -1,0 +1,30 @@
+$kind: http-request
+name: Cancel Subscription
+method: POST
+url: '{{base_url}}/subscription/cancel'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "cancellation_reason": "Tạm thời không cần xem phim"
+    }
+description: |
+  Hủy gói cước đang hoạt động của user.
+  
+  Parameters:
+  - cancellation_reason (optional): Lý do hủy gói
+  
+  Response:
+  {
+    "status": "cancelled",
+    "cancelled_at": "2026-06-03T10:30:00Z",
+    "subscription_expires_at": "2026-07-03T10:00:00Z",
+    "message": "Gói cước của bạn sẽ kết thúc vào 2026-07-03. Bạn vẫn có quyền xem phim cho đến ngày đó."
+  }
+  
+  Lưu ý: Hủy gói sẽ hiệu lực ngay lập tức (auto_renew = false), nhưng quyền xem vẫn có cho đến hết kỳ hiện tại.

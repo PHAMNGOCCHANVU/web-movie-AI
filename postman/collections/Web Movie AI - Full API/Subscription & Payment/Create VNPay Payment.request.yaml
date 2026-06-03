@@ -11,9 +11,15 @@ body:
   type: json
   content: |-
     {
-      "plan_code": "standard"
+      "plan_code": "standard_monthly",
+      "billing_cycle": "monthly"
     }
 description: |
-  Tạo giao dịch VNPay. amount = giá đầy đủ của gói (không prorate).
-  plan_code: "standard" | "vip"
-  transaction_type: "purchase" (mặc định khi Free mua Standard hoặc VIP).
+  Tạo giao dịch VNPay thanh toán gói cước.
+  
+  Parameters:
+  - plan_code: "standard_monthly" | "standard_yearly" | "vip_monthly" | "vip_yearly"
+  - billing_cycle: "monthly" | "yearly" (tùy chọn monthly/yearly pricing)
+  
+  Amount được tính dựa vào billing_cycle đã chọn.
+  transaction_type: "purchase" (mặc định khi Free mua), "upgrade" (nâng cấp), "renewal" (gia hạn)

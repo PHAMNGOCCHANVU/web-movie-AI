@@ -3,5 +3,40 @@ name: Get Subscription Plans
 method: GET
 url: '{{base_url}}/subscription/plans'
 description: |
-  Trả về danh sách gói cước (plan_code: standard, vip).
-  Free user dùng để chọn gói trước khi thanh toán VNPay.
+  Trả về danh sách gói cước với các lựa chọn monthly & yearly.
+  
+  Response example:
+  [
+    {
+      "plan_code": "standard_monthly",
+      "name": "Standard - Hàng tháng",
+      "price": 49000,
+      "billing_cycle_type": "monthly",
+      "duration_days": 30,
+      "yearly_discount_percent": 0
+    },
+    {
+      "plan_code": "standard_yearly",
+      "name": "Standard - Hàng năm",
+      "price": 470400,
+      "billing_cycle_type": "yearly",
+      "duration_days": 365,
+      "yearly_discount_percent": 20
+    },
+    {
+      "plan_code": "vip_monthly",
+      "name": "VIP - Hàng tháng",
+      "price": 99000,
+      "billing_cycle_type": "monthly",
+      "duration_days": 30,
+      "yearly_discount_percent": 0
+    },
+    {
+      "plan_code": "vip_yearly",
+      "name": "VIP - Hàng năm",
+      "price": 950400,
+      "billing_cycle_type": "yearly",
+      "duration_days": 365,
+      "yearly_discount_percent": 20
+    }
+  ]

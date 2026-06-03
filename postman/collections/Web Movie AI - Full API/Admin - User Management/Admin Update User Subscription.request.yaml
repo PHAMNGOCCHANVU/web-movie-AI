@@ -11,9 +11,22 @@ body:
   type: json
   content: |-
     {
-      "plan_code": "standard",
+      "plan_code": "standard_monthly",
       "subscription_status": "active",
-      "subscription_expires_at": "2026-07-01T00:00:00Z"
+      "subscription_starts_at": "2026-06-01T00:00:00Z",
+      "subscription_expires_at": "2026-07-01T00:00:00Z",
+      "auto_renew": true,
+      "cancelled_at": null,
+      "cancellation_reason": null
     }
 description: |
-  Admin hỗ trợ chỉnh gói cước thủ công (plan_code, status, expires_at).
+  Admin hỗ trợ chỉnh gói cước thủ công (hỗ trợ khách hàng).
+  
+  Có thể cập nhật:
+  - plan_code: "standard_monthly" | "standard_yearly" | "vip_monthly" | "vip_yearly"
+  - subscription_status: "active" | "expired" | "cancelled" | "suspended"
+  - subscription_starts_at, subscription_expires_at: Ngày bắt đầu/kết thúc
+  - auto_renew: true/false (tự động gia hạn?)
+  - cancelled_at, cancellation_reason: Nếu muốn tái kích hoạt gói đã hủy
+  
+  Lưu ý: Tất cả thay đổi sẽ được ghi vào subscription_history để audit.

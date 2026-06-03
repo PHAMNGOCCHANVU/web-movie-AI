@@ -2,48 +2,49 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    // 1. Cấp quyền cho Admin được phép sửa các cột này
     protected $fillable = [
         'name',
         'email',
         'password',
+        'role_id',          
+        'is_locked',        
+        'vip_package_id',
+        'vip_expires_at'
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    // 2. Ép kiểu dữ liệu chuẩn xác
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_locked' => 'boolean', 
+            'vip_expires_at' => 'datetime'
         ];
+    }
+
+    // 3. Khai báo quan hệ OOP để tự động nối bảng
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function vipPackage()
+    {
+        return $this->belongsTo(VipPackage::class, 'vip_package_id');
     }
 }

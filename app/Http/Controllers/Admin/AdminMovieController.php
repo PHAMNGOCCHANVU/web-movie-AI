@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Genre;
 use App\Models\Movie;
+use App\Models\Episode;
 use Illuminate\Http\Request;
 
 class AdminMovieController extends Controller
 {
+    // =========================================================
     // NHÓM 1: QUẢN LÝ THỂ LOẠI (CATEGORIES / GENRES)
+    // =========================================================
 
     // API 1: Lấy toàn bộ danh sách Thể loại
     public function getCategories()
@@ -40,12 +43,22 @@ class AdminMovieController extends Controller
         ], 200);
     }
 
+    // =========================================================
     // NHÓM 2: QUẢN LÝ PHIM (MOVIE CRUD)
+    // =========================================================
 
-    // API 3: Lấy danh sách toàn bộ Phim (Kèm phân trang)
-    public function getAllMovies()
+    // API 3: Lấy danh sách toàn bộ Phim (Có lọc theo status và phân trang)
+    public function getAllMovies(Request $request)
     {
-        $movies = Movie::with('genres')->orderBy('created_at', 'desc')->paginate(10);
+        $query = Movie::with('genres')->orderBy('created_at', 'desc');
+
+        // Bổ sung bộ lọc status cho Admin (Ví dụ: lọc phim 'pending' để duyệt)
+        if ($request->has('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $movies = $query->paginate(10);
+        
         return response()->json([
             'status' => 'success',
             'message' => 'Lấy danh sách phim thành công',
@@ -123,8 +136,9 @@ class AdminMovieController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
         }
 
-        $movie->genres()->detach();
-        $movie->delete();
+        $movie->episodes()->delete(); // Xóa các tập phim trước
+        $movie->genres()->detach();   // Gỡ liên kết thể loại
+        $movie->delete();             // Xóa phim
 
         return response()->json([
             'status' => 'success',
@@ -132,7 +146,9 @@ class AdminMovieController extends Controller
         ], 200);
     }
 
+    // =========================================================
     // NHÓM 3: THAO TÁC NHANH (QUICK ACTIONS)
+    // =========================================================
 
     // API 7: Bật/Tắt trạng thái Premium
     public function togglePremium(string $id)
@@ -167,6 +183,65 @@ class AdminMovieController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => $statusText
+        ], 200);
+    }
+
+    // =========================================================
+    // NHÓM 4: KIỂM DUYỆT PHIM (MODERATION WORKFLOW)
+    // =========================================================
+
+    // API 9: Duyệt phim (Chuyển status từ pending -> approved)
+    public function approveMovie(string $id)
+    {
+        $movie = Movie::find($id);
+        if (!$movie) {
+            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
+        }
+
+        // Chuyển trạng thái sang đã duyệt
+        $movie->status = 'approved';
+        $movie->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Đã DUYỆT bộ phim: {$movie->name}. Phim đã được hiển thị ra trang chủ."
+        ], 200);
+    }
+
+    // API 10: Từ chối phim (Xóa phim rác khỏi hệ thống)
+    public function rejectMovie(string $id)
+    {
+        $movie = Movie::find($id);
+        if (!$movie) {
+            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
+        }
+
+        // Lưu ý: Phải xóa các tập phim (episodes) liên kết trước để tránh lỗi khóa ngoại
+        $movie->episodes()->delete(); 
+        
+        // Gỡ liên kết thể loại và xóa phim
+        $movie->genres()->detach();
+        $movie->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Đã TỪ CHỐI và xóa vĩnh viễn phim: {$movie->name}."
+        ], 200);
+    }
+
+    // API 11: Xóa một luồng phát / server lỗi cụ thể
+    public function deleteEpisode(string $id)
+    {
+        $episode = Episode::find($id);
+        if (!$episode) {
+            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy luồng phát này'], 404);
+        }
+
+        $episode->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Đã xóa server phát lỗi: {$episode->name}."
         ], 200);
     }
 }

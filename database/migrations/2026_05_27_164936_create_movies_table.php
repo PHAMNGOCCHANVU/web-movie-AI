@@ -11,14 +11,16 @@ return new class extends Migration
         Schema::create('movies', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->integer('tmdb_id')->unique()->nullable(); // Mã gốc của TMDB
-            $table->text('description')->nullable(); // nullable() nghĩa là cho phép bỏ trống nếu phim chưa có thông tin
+            $table->integer('tmdb_id')->unique()->nullable(); 
+            $table->text('description')->nullable(); 
             $table->date('release_date')->nullable();
             $table->string('poster_url')->nullable();
             $table->string('trailer_url')->nullable();
             $table->integer('duration')->nullable();
             $table->boolean('is_premium')->default(false);
             $table->boolean('is_pinned')->default(false);
+            // Thêm cột status kiểu ENUM theo đúng thiết kế
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
         });
     }

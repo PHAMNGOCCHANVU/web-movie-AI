@@ -1,4 +1,4 @@
-$kind: http-request
+﻿$kind: http-request
 name: Get Current User
 method: GET
 url: '{{base_url}}/auth/me'
@@ -8,6 +8,21 @@ auth:
     - key: token
       value: '{{token}}'
 description: |
-  Response gồm role (user|admin) và subscription:
+  Response gá»“m role (user|admin) vÃ  subscription:
   { plan_code, status, starts_at, expires_at }
   Free: plan_code null, status none.
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Me - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Me - Has user fields", function () {
+          const json = pm.response.json();
+          const user = json.data || json;
+          pm.expect(user).to.have.property('id');
+          pm.expect(user).to.have.property('email');
+          pm.expect(user).to.have.property('name');
+      });

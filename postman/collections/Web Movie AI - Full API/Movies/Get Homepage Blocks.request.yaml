@@ -4,3 +4,17 @@ method: GET
 url: '{{base_url}}/homepage-blocks'
 description: |
   Public — chỉ trả các block is_visible=true cho trang chủ.
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Homepage Blocks - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Homepage Blocks - Response has blocks data", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.exist;
+          const data = json.data || json;
+          pm.expect(data).to.exist;
+      });

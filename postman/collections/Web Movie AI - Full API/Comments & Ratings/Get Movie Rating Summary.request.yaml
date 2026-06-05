@@ -1,4 +1,20 @@
-$kind: http-request
+﻿$kind: http-request
 name: Get Movie Rating Summary
 method: GET
 url: '{{base_url}}/movies/{{movie_id}}/ratings'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Rating Summary - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Rating Summary - Has rating data", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          const hasAverage = data.average !== undefined || data.avg_rating !== undefined || data.rating !== undefined;
+          const hasTotal = data.total !== undefined || data.count !== undefined;
+          pm.expect(hasAverage).to.be.true;
+          pm.expect(hasTotal).to.be.true;
+      });

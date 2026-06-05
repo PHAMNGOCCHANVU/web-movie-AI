@@ -1,4 +1,4 @@
-$kind: http-request
+﻿$kind: http-request
 name: Post Comment
 method: POST
 url: '{{base_url}}/movies/{{movie_id}}/comments'
@@ -11,5 +11,22 @@ body:
   type: json
   content: |-
     {
-      "content": "Phim rất hay, tôi rất thích!"
+      "content": "Phim ráº¥t hay, tÃ´i ráº¥t thÃ­ch!"
     }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Post Comment - Status 201", function () {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test("Post Comment - Response has comment data", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("data");
+          pm.expect(json.data).to.have.property("id");
+          pm.expect(json.data.content).to.equal("Phim ráº¥t hay, tÃ´i ráº¥t thÃ­ch!");
+          
+          pm.environment.set("test_comment_id", json.data.id.toString());
+          pm.environment.set("comment_id", json.data.id.toString());
+      });

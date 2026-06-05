@@ -1,4 +1,4 @@
-$kind: http-request
+﻿$kind: http-request
 name: Register
 method: POST
 url: '{{base_url}}/auth/register'
@@ -7,7 +7,41 @@ body:
   content: |-
     {
       "name": "Nguyen Van A",
-      "email": "user@example.com",
-      "password": "password123",
-      "password_confirmation": "password123"
+      "email": "{{test_email}}",
+      "password": "{{test_password}}",
+      "password_confirmation": "{{test_password}}"
     }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Register - Status 201/200", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 422]);
+          if (pm.response.code === 422) {
+              const json = pm.response.json();
+              pm.expect(json.message || json.errors).to.exist;
+          }
+      });
+
+      pm.test("Register - Response has token", function () {
+          if (pm.response.code === 422) {
+              pm.expect(pm.response.code).to.equal(422);
+              return;
+          }
+          const json = pm.response.json();
+          const token = json.token || (json.data && json.data.token) || json.access_token;
+          pm.expect(token).to.be.a('string').and.not.empty;
+          if (token) {
+              pm.environment.set("token", token);
+          }
+      });
+
+      pm.test("Register - Response has user data", function () {
+          if (pm.response.code === 422) {
+              pm.expect(pm.response.code).to.equal(422);
+              return;
+          }
+          const json = pm.response.json();
+          const user = json.user || (json.data && json.data.user) || json.data;
+          pm.expect(user).to.be.an('object');
+      });

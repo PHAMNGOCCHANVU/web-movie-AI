@@ -2,3 +2,18 @@ $kind: http-request
 name: Get Movie Detail
 method: GET
 url: '{{base_url}}/movies/{{movie_id}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Movie Detail - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Movie Detail - Has required fields", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          pm.expect(data).to.have.property("id");
+          pm.expect(data).to.have.property("title");
+          pm.expect(data.description !== undefined || data.overview !== undefined).to.be.true;
+      });

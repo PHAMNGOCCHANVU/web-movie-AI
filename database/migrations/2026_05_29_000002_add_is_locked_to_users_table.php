@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_locked')->default(false)->after('vip_expires_at');
+            $table->boolean('is_locked')->default(false);
         });
     }
 

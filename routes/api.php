@@ -1,8 +1,94 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\AI\AiChatController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Genre\GenreController;
+use App\Http\Controllers\Homepage\HomepageBlockController;
+use App\Http\Controllers\Movie\CommentController;
+use App\Http\Controllers\Movie\EpisodeController;
+use App\Http\Controllers\Movie\MovieController;
+use App\Http\Controllers\Movie\RatingController;
+use App\Http\Controllers\Movie\StreamController;
+use App\Http\Controllers\Subscription\SubscriptionController;
+use App\Http\Controllers\Subscription\VNPayController;
+use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\User\WatchHistoryController;
+use App\Http\Controllers\User\WatchlistController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// === PUBLIC ROUTES ===
+
+// Auth
+Route::prefix('auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+});
+
+// Movies
+Route::get('/movies', [MovieController::class, 'index']);
+Route::get('/movies/search', [MovieController::class, 'search']);
+Route::get('/movies/featured', [MovieController::class, 'featured']);
+Route::get('/movies/new-updated', [MovieController::class, 'newUpdated']);
+Route::get('/movies/{movie}', [MovieController::class, 'show']);
+Route::get('/movies/{movie}/cast', [MovieController::class, 'cast']);
+Route::get('/movies/{movie}/trailer', [MovieController::class, 'trailer']);
+Route::get('/movies/{movie}/episodes', [EpisodeController::class, 'index']);
+Route::get('/movies/{movie}/comments', [CommentController::class, 'index']);
+Route::get('/movies/{movie}/ratings', [RatingController::class, 'summary']);
+
+// Genres
+Route::get('/genres', [GenreController::class, 'index']);
+Route::get('/genres/{genre}/movies', [GenreController::class, 'movies']);
+
+// Homepage
+Route::get('/homepage-blocks', [HomepageBlockController::class, 'index']);
+
+// Subscription plans (public)
+Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
+
+// VNPay callbacks (no auth)
+Route::get('/payment/vnpay/return', [VNPayController::class, 'return']);
+Route::match(['get', 'post'], '/payment/vnpay/ipn', [VNPayController::class, 'ipn']);
+
+// === AUTHENTICATED ROUTES ===
+Route::middleware(['auth:sanctum', 'check.locked'])->group(function () {
+    // Auth
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
+
+    // Profile
+    Route::get('/user/profile', [ProfileController::class, 'show']);
+    Route::put('/user/profile', [ProfileController::class, 'update']);
+    Route::put('/user/change-password', [ProfileController::class, 'changePassword']);
+
+    // Watchlist
+    Route::get('/user/watchlist', [WatchlistController::class, 'index']);
+    Route::post('/user/watchlist', [WatchlistController::class, 'store']);
+    Route::delete('/user/watchlist/{movie}', [WatchlistController::class, 'destroy']);
+
+    // Watch History
+    Route::get('/user/watch-history', [WatchHistoryController::class, 'index']);
+    Route::post('/user/watch-history', [WatchHistoryController::class, 'store']);
+    Route::delete('/user/watch-history/{movie}', [WatchHistoryController::class, 'destroy']);
+
+    // Comments & Ratings
+    Route::post('/movies/{movie}/comments', [CommentController::class, 'store']);
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::post('/movies/{movie}/ratings', [RatingController::class, 'store']);
+
+    // Subscription & Payment
+    Route::get('/user/subscription', [SubscriptionController::class, 'show']);
+    Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);
+    Route::get('/user/payment-history', [SubscriptionController::class, 'paymentHistory']);
+    Route::post('/payment/vnpay/create', [VNPayController::class, 'create']);
+
+    // Stream (subscription check inside controller)
+    Route::get('/movies/{movie}/stream', [StreamController::class, 'stream']);
+
+    // AI Chat
+    Route::post('/ai/chat', [AiChatController::class, 'chat']);
+    Route::get('/ai/chat/history', [AiChatController::class, 'history']);
+    Route::delete('/ai/chat/history', [AiChatController::class, 'clearHistory']);
+});

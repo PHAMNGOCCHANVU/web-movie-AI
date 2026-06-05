@@ -1,4 +1,4 @@
-$kind: http-request
+﻿$kind: http-request
 name: Create VNPay Payment - Upgrade to VIP
 method: POST
 url: '{{base_url}}/payment/vnpay/create'
@@ -11,10 +11,25 @@ body:
   type: json
   content: |-
     {
-      "plan_code": "vip",
-      "transaction_type": "upgrade"
+      "plan_code": "vip_monthly",
+      "transaction_type": "upgrade",
+      "billing_cycle": "monthly"
     }
-description: |
-  Standard user nâng cấp VIP: thanh toán TOÀN BỘ giá gói VIP (full price).
-  Không trừ số tiền/ngày còn lại của Standard.
-  Khi IPN success: ghi đè subscription sang VIP, chu kỳ mới từ thời điểm kích hoạt.
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Create Upgrade Payment - Status 200 or 400", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 400]);
+      });
+
+      pm.test("Create Upgrade Payment - Response verification if 200", function () {
+          if (pm.response.code === 200) {
+              const json = pm.response.json();
+              pm.expect(json).to.have.property("data");
+              pm.expect(json.data).to.have.property("payment_url");
+              pm.expect(json.data).to.have.property("vnp_txn_ref");
+              
+              pm.environment.set("test_vnp_txn_ref_vip", json.data.vnp_txn_ref);
+          }
+      });

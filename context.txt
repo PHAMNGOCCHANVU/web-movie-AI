@@ -4,7 +4,7 @@
 ================================================================================
 0. NGUYÊN TẮC THIẾT KẾ HỆ THỐNG
 ================================================================================
-• Web xem phim trả phí: metadata phim lấy từ TMDB; nguồn phát (stream) lấy từ API phim bên thứ ba khác, URL stream lưu trong DB nội bộ.
+• Web xem phim trả phí: metadata phim và nguồn phát (stream) lấy từ Ophim API (phim Việt Nam), URL stream lưu trong DB nội bộ.
 • Phân quyền hệ thống (bắt buộc): chỉ 2 role — User, Admin. Role KHÔNG quyết định quyền xem phim.
 • Quyền xem phim: theo Gói cước (subscription plan) gắn với tài khoản đã đăng nhập.
 • Phân loại nội dung phim: cờ is_premium trên từng phim (do Admin cấu hình).
@@ -39,7 +39,7 @@ A. PHÂN HỆ GIAO DIỆN NGƯỜI DÙNG (FRONTEND)
 • Xác thực: Đăng ký tài khoản, Đăng nhập, Quên mật khẩu (khách có thể truy cập màn hình; thao tác yêu cầu tạo tài khoản).
 • Trang chủ: Xem Slider phim nổi bật/ghim, danh sách phim theo thể loại, phim mới cập nhật.
 • Tìm kiếm & Lọc cơ bản: Tìm theo từ khóa (tên phim), lọc theo năm phát hành, thể loại.
-• Chi tiết phim: Thông tin từ TMDB (Poster, Trailer YouTube iframe, tóm tắt, rating, diễn viên).
+• Chi tiết phim: Thông tin từ Ophim API (Poster, Trailer YouTube iframe, tóm tắt, rating, diễn viên).
 • Được xem Trailer (YouTube iframe) để trải nghiệm preview, kích thích nhu cầu xem full.
 • Giới hạn: Không được bấm "Xem phim" (Play) — hệ thống yêu cầu đăng nhập. Không dùng AI Chat, không có tủ phim cá nhân.
 
@@ -83,14 +83,14 @@ B. PHÂN HỆ QUẢN TRỊ HỆ THỐNG (ADMIN DASHBOARD)
   - Lưu ý: chỉ mang tính tham khảo, không dùng làm KPI pháp lý; cập nhật theo lô (cache/job), không realtime từng giây.
 
 2. Quản lý Phim & Nội dung
-• Đồng bộ metadata từ TMDB (poster, mô tả, cast, trailer…).
+• Đồng bộ metadata từ Ophim API (poster, mô tả, cast, trailer…).
 • Gán / cập nhật URL stream (nguồn API phim bên thứ ba) vào DB nội bộ cho từng phim (hoặc tập phim nếu có).
 • Phân loại Freemium: Cài đặt is_premium = true/false.
-• Ghim nội dung: Chọn phim từ TMDB (đã sync) để ghim lên Slider trang chủ (is_pinned).
+• Ghim nội dung: Chọn phim từ DB phim (đã sync) để ghim lên Slider trang chủ (is_pinned).
 • Quản lý khối danh mục trang chủ (đề xuất):
   - Mỗi khối (block) là một mục hiển thị trên trang chủ: ví dụ "Phim hành động", "Mới cập nhật", "Đang hot".
   - Thuộc tính: tên hiển thị, loại nguồn (genre_id / rule: mới nhất / ghim / custom), is_visible, sort_order.
-  - Admin ẩn/hiện và kéo thả thứ tự khối; không nhầm với bảng genre TMDB thuần — genre là dữ liệu, homepage_block là cấu hình UI.
+  - Admin ẩn/hiện và kéo thả thứ tự khối; không nhầm với bảng genre thuần — genre là dữ liệu, homepage_block là cấu hình UI.
 
 3. Quản lý Người dùng
 • Xem danh sách, chi tiết người dùng.
@@ -121,7 +121,7 @@ C. CHỨC NĂNG HỆ THỐNG & KIẾN TRÚC BACKEND
 ================================================================================
 
 1. Đồng bộ dữ liệu
-• TMDB API (Laravel HTTP Client): metadata phim, genre, cast, trailer.
+• Ophim API (Laravel HTTP Client): metadata phim, genre, cast, trailer.
 • API stream bên thứ ba: lấy URL phát, lưu vào DB; Play chỉ trả URL khi user đủ quyền gói.
 
 2. Caching
@@ -168,6 +168,13 @@ C. CHỨC NĂNG HỆ THỐNG & KIẾN TRÚC BACKEND
   - ⚠️ Quyền xem KHÔNG bị mất ngay — được giữ đến hết kỳ thanh toán hiện tại
   - Khi hết hạn: subscription_status tự động = "expired"
 
+**Lưu ý quan trọng: Cơ Chế Thanh Toán Giả Lập (VNPay Sandbox)**
+*   Sử dụng môi trường VNPay Sandbox để kiểm thử tính năng mua gói cước (Không dùng tiền thật, sử dụng thẻ test NCB do VNPay cung cấp).
+*   **Yêu cầu kỹ thuật bắt buộc:**
+    1. Cấu hình múi giờ (GMT+7) khi tạo chuỗi để né lỗi lệch giờ trên server Vercel.
+    2. Triển khai Endpoint ở Backend để tiếp nhận kết quả thanh toán tự động (Server-to-Server), đảm bảo user được nâng cấp gói ngay cả khi tắt tab trình duyệt.
+    3. Viết Middleware bảo mật ở Backend: Check gói đăng ký của user trước khi trả về link stream .m3u8, không bảo mật lỏng lẻo bằng cách chỉ ẩn/hiện nút ở Frontend.
+
 **4.5 Admin Manual Override (Hỗ trợ khách hàng)**
 • Admin PATCH /admin/users/{id}/subscription để: cấp gói miễn phí, kéo dài hạn, tái kích hoạt gói đã hủy.
 • Tất cả thay đổi ghi vào subscription_history & admin_activity_logs (action, old_plan, new_plan, reason).
@@ -183,13 +190,13 @@ D. BẢO MẬT & PHÁP LÝ (ĐỀ XUẤT TỐI THIỂU)
 • Admin route: middleware role admin + ghi admin_activity_logs.
 • Rate limit: login, AI chat, comment post.
 • Dữ liệu cá nhân: chỉ admin được xem email/phone; không log plaintext password.
-• Phạm vi đồ án: nội dung phim/stream phục vụ mục đích học tập/demo; tuân thủ điều khoản API TMDB và nhà cung cấp stream; không phát hành thương mại bản quyền trái phép.
+• Phạm vi đồ án: nội dung phim/stream phục vụ mục đích học tập/demo; tuân thủ điều khoản API Ophim và nhà cung cấp stream; không phát hành thương mại bản quyền trái phép.
 
 ================================================================================
 E. PHẠM VI MVP (ƯU TIÊN TRIỂN KHAI)
 ================================================================================
 Bắt buộc:
-• Auth (đăng ký, đăng nhập, quên MK), Guest/Free/Standard/VIP matrix, TMDB sync, stream URL DB, VNPay Sandbox, Admin CRUD phim + is_premium + ghim, Moderation thủ công, Dashboard thống kê cơ bản.
+• Auth (đăng ký, đăng nhập, quên MK), Guest/Free/Standard/VIP matrix, Ophim API sync, stream URL DB, VNPay Sandbox, Admin CRUD phim + is_premium + ghim, Moderation thủ công, Dashboard thống kê cơ bản.
 
 Có thể làm sau / đơn giản hóa:
 • Sentiment rule-based nâng cao, đăng nhập Gmail OAuth (nếu chưa kịp thì Form trước).

@@ -2,3 +2,36 @@ $kind: http-request
 name: Get All Genres
 method: GET
 url: '{{base_url}}/genres'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get All Genres - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get All Genres - Response is array", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          const items = Array.isArray(data) ? data : (data.data || []);
+          pm.expect(Array.isArray(items)).to.be.true;
+      });
+
+      pm.test("Get All Genres - Each genre has id and name", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          const genres = Array.isArray(data) ? data : (data.data || []);
+          if (genres.length > 0) {
+              genres.forEach(function (genre) {
+                  pm.expect(genre).to.have.property("id");
+                  pm.expect(genre).to.have.property("name");
+              });
+          }
+      });
+
+      const json = pm.response.json();
+      const data = json.data || json;
+      const genres = Array.isArray(data) ? data : (data.data || []);
+      if (genres.length > 0) {
+          pm.environment.set("test_genre_id", genres[0].id.toString());
+      }

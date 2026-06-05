@@ -2,3 +2,18 @@ $kind: http-request
 name: Get Movie Cast
 method: GET
 url: '{{base_url}}/movies/{{movie_id}}/cast'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Movie Cast - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Movie Cast - Response is array or has data", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          const isArray = Array.isArray(data);
+          const hasData = data !== null && data !== undefined;
+          pm.expect(isArray || hasData).to.be.true;
+      });

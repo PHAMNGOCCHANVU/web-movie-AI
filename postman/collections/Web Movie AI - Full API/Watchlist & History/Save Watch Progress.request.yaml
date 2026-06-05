@@ -11,7 +11,20 @@ body:
   type: json
   content: |-
     {
-      "movie_id": 1,
+      "movie_id": {{test_movie_id}},
       "episode_id": 1,
-      "progress_seconds": 1200
+      "progress": 120,
+      "duration": 3600
     }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Save Watch Progress - Status 200 or 201", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+
+      pm.test("Save Watch Progress - Response has data", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("data");
+      });

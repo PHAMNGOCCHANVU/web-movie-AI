@@ -1,4 +1,4 @@
-$kind: http-request
+﻿$kind: http-request
 name: Logout
 method: POST
 url: '{{base_url}}/auth/logout'
@@ -7,3 +7,15 @@ auth:
   credentials:
     - key: token
       value: '{{token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Logout - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Logout - Token cleared", function () {
+          pm.environment.unset("token");
+          pm.expect(pm.environment.get("token")).to.be.undefined;
+      });

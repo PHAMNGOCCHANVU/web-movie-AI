@@ -7,3 +7,19 @@ auth:
   credentials:
     - key: token
       value: '{{token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Watchlist - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Watchlist - Response is array or paginated", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.satisfy(function (d) {
+              return Array.isArray(d) ||
+                     Array.isArray(d.data) ||
+                     (d.data && typeof d.data === "object");
+          });
+      });

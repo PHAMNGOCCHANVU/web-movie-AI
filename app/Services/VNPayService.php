@@ -170,7 +170,7 @@ class VNPayService
                 DB::transaction(function () use ($transaction, $vnpPayDate) {
                     $transaction->update([
                         'status' => 'success',
-                        'vnp_pay_date' => $vnpPayDate ?: now(),
+                        'vnp_pay_date' => $vnpPayDate ? \Illuminate\Support\Carbon::createFromFormat('YmdHis', $vnpPayDate) : now(),
                     ]);
 
                     $user = $transaction->user;

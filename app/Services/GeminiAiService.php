@@ -52,7 +52,7 @@ class GeminiAiService
         }
 
         try {
-            $response = Http::timeout(15)->post("{$this->baseUrl}/models/gemini-2.0-flash:generateContent", [
+            $response = Http::timeout(15)->post("{$this->baseUrl}/models/gemini-3.5-flash:generateContent?key={$this->apiKey}", [
                 'contents' => $contents,
                 'generationConfig' => [
                     'temperature' => 0.7,

@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminCommentController;
 use App\Http\Controllers\Admin\AdminTransactionController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminHomepageBlockController;
 use App\Http\Controllers\Client\MovieController as ClientMovieController;
 use Illuminate\Http\Request;
 
@@ -116,12 +117,14 @@ Route::prefix('client')->group(function () {
 });
 
 /* ADMIN API ROUTES */
-Route::prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'check.locked', 'admin'])->prefix('admin')->group(function () {
     
     // =========================================================
     // 9. Đồng bộ dữ liệu phim (ETL - Nguồn Ophim)
     // =========================================================
-    Route::get('/sync/ophim', [OphimSyncController::class, 'syncMovies']);
+    Route::match(['get', 'post'], '/sync/ophim', [OphimSyncController::class, 'syncMovies']);
+    Route::post('/sync/ophim/movies', [OphimSyncController::class, 'syncMovies']);
+    Route::post('/sync/ophim/genres', [OphimSyncController::class, 'syncGenres']);
 
     // =========================================================
     // 11. Admin - Movie Management (Quản lý Phim & Kiểm duyệt)
@@ -146,12 +149,21 @@ Route::prefix('admin')->group(function () {
     Route::put('/categories/{id}', [AdminMovieController::class, 'updateCategory']); // Sửa tên thể loại
 
     // =========================================================
+    // 11c. Admin - Homepage Block Management (Quản lý Khối trang chủ)
+    // =========================================================
+    Route::get('/homepage-blocks', [AdminHomepageBlockController::class, 'index']);
+    Route::post('/homepage-blocks', [AdminHomepageBlockController::class, 'store']);
+    Route::put('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'update']);
+    Route::delete('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'destroy']);
+
+    // =========================================================
     // 12. Admin - User Management (Quản lý Người dùng)
     // =========================================================
     Route::get('/users', [AdminUserController::class, 'index']);               // 1. Get All Users
     Route::get('/users/{id}', [AdminUserController::class, 'show']);           // 2. Get User Detail
     Route::patch('/users/{id}/role', [AdminUserController::class, 'updateRole']);   // 3. Change User Role
     Route::patch('/users/{id}/status', [AdminUserController::class, 'updateStatus']); // 4. Lock/Unlock User
+    Route::patch('/users/{id}/subscription', [AdminUserController::class, 'updateSubscription']); // 5. Update Subscription
 
     // =========================================================
     // 13. Admin - Comment Moderation (Duyệt bình luận)

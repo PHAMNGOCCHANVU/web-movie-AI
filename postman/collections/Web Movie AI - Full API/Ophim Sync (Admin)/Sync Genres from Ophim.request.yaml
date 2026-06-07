@@ -1,7 +1,7 @@
 $kind: http-request
-name: Sync Genres from TMDB
+name: Sync Genres from Ophim
 method: POST
-url: '{{base_url}}/admin/tmdb/sync-genres'
+url: '{{base_url}}/admin/sync/ophim/genres'
 auth:
   type: bearer
   credentials:

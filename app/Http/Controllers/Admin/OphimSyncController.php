@@ -143,4 +143,22 @@ class OphimSyncController extends Controller
         }
         return false;
     }
+
+    // API 2: Đồng bộ Thể loại phim (ETL - Nguồn Ophim)
+    public function syncGenres(\App\Services\OphimService $ophimService)
+    {
+        $result = $ophimService->syncGenres();
+
+        if (!$result['success']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $result['message']
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Đồng bộ thể loại hoàn tất. Tổng số: {$result['count']}"
+        ], 200);
+    }
 }

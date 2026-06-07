@@ -14,6 +14,7 @@ class Movie extends Model
         'year', 'episode_current', 'episode_total', 'time',
         'actor', 'director', 'country', 'view_count', 'status', 'last_synced_at',
         'is_premium', 'is_pinned', 'stream_url', 'stream_source', 'tmdb_id',
+        'description', 'release_date', 'duration',
     ];
 
     protected function casts(): array
@@ -27,12 +28,14 @@ class Movie extends Model
             'year' => 'integer',
             'view_count' => 'integer',
             'last_synced_at' => 'datetime',
+            'release_date' => 'date',
+            'duration' => 'integer',
         ];
     }
 
     public function genres(): BelongsToMany
     {
-        return $this->belongsToMany(Genre::class, 'genre_movie');
+        return $this->belongsToMany(Genre::class, 'genre_movie', 'movie_id', 'genre_id');
     }
 
     public function episodes(): HasMany

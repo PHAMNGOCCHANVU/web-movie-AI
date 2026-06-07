@@ -6,23 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('movies', function (Blueprint $table) {
             $table->id();
-            $table->integer('tmdb_id')->unique();
+            $table->string('name');
+            $table->integer('tmdb_id')->unique()->nullable(); 
+            $table->text('description')->nullable(); 
+            $table->date('release_date')->nullable();
+            $table->string('poster_url')->nullable();
+            $table->string('trailer_url')->nullable();
+            $table->integer('duration')->nullable();
             $table->boolean('is_premium')->default(false);
             $table->boolean('is_pinned')->default(false);
+            // Thêm cột status kiểu ENUM theo đúng thiết kế
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('movies');

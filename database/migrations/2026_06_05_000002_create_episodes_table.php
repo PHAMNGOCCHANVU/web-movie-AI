@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('filename')->nullable();
             $table->text('link_embed')->nullable();
             $table->text('link_m3u8')->nullable();
+            $table->text('stream_url')->nullable();
             $table->integer('sort_order')->default(0);
             $table->timestamps();
 

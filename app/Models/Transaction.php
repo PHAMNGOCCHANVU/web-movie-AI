@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'subscription_plan_id', 'transaction_type',
         'vnp_txn_ref', 'amount', 'status', 'vnp_transaction_no',
@@ -27,7 +30,7 @@ class Transaction extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function subscriptionPlan(): BelongsTo

@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AI\AiChatController;
-use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Genre\GenreController;
 use App\Http\Controllers\Homepage\HomepageBlockController;
 use App\Http\Controllers\Movie\CommentController;
@@ -29,10 +32,10 @@ use Illuminate\Http\Request;
 
 // Auth
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/register', [RegisteredUserController::class, 'store']);
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store']);
+    Route::post('/reset-password', [NewPasswordController::class, 'store']);
 });
 
 // Movies
@@ -64,8 +67,12 @@ Route::match(['get', 'post'], '/payment/vnpay/ipn', [VNPayController::class, 'ip
 // === AUTHENTICATED ROUTES ===
 Route::middleware(['auth:sanctum', 'check.locked'])->group(function () {
     // Auth
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::post('/auth/logout', [AuthenticatedSessionController::class, 'destroy']);
+    Route::get('/auth/me', function (Request $request) {
+        return response()->json([
+            'data' => $request->user()->load(['role', 'subscriptionPlan'])
+        ]);
+    });
 
     // Profile
     Route::get('/user/profile', [ProfileController::class, 'show']);

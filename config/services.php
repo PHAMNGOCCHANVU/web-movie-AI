@@ -35,4 +35,32 @@ return [
         ],
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'base_url' => env(
+            'GEMINI_BASE_URL',
+            'https://generativelanguage.googleapis.com/v1beta'
+        ),
+        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash'),
+        'fallback_model' => env('GEMINI_FALLBACK_MODEL', 'gemini-2.5-flash'),
+        'reserve_model' => env('GEMINI_RESERVE_MODEL', 'gemini-3.1-flash-lite'),
+        'thinking_level' => env('GEMINI_THINKING_LEVEL', 'medium'),
+        'google_search' => (bool) env('GEMINI_GOOGLE_SEARCH', true),
+        'connect_timeout' => (int) env('GEMINI_CONNECT_TIMEOUT', 5),
+        'primary_timeout' => (int) env('GEMINI_PRIMARY_TIMEOUT', 12),
+        'fallback_timeout' => (int) env('GEMINI_FALLBACK_TIMEOUT', 15),
+        'catalog_limit' => (int) env('GEMINI_CATALOG_LIMIT', 120),
+        'chat_limit_per_hour' => (int) env('GEMINI_CHAT_LIMIT_PER_HOUR', 100),
+    ],
+
+    'moderation' => [
+        'url' => env('MODERATION_URL', 'http://34.203.227.23:8765'),
+        'model' => env(
+            'MODERATION_MODEL',
+            'visolex/phobert-v2-hsd'
+        ),
+        'connect_timeout' => (int) env('MODERATION_CONNECT_TIMEOUT', 2),
+        'timeout' => (int) env('MODERATION_TIMEOUT', 30),
+    ],
+
 ];

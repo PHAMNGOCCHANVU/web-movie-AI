@@ -20,7 +20,7 @@ class ProfileController extends Controller
     public function update(UpdateProfileRequest $request): JsonResponse
     {
         $user = $request->user();
-        $user->update($request->only('name'));
+        $user->update($request->only(['name', 'phone']));
 
         return response()->json([
             'message' => 'Cập nhật thông tin thành công.',

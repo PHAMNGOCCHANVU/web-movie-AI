@@ -8,8 +8,8 @@ Tích hợp Cổng thanh toán VNPAY vào hệ thống đăng ký gói cước (
 
 | Thông số | Giá trị |
 |:---------|:--------|
-| **vnp_TmnCode** | `RJXNTQ8K` |
-| **vnp_HashSecret** | `INHN2HPMJXBZAK8M7CEEQECJZACTO2G7` |
+| **vnp_TmnCode** | `TQAGA7XZ` |
+| **vnp_HashSecret** | Cấu hình riêng trong `.env`, không commit lên Git |
 | **VNPay Sandbox URL** | `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html` |
 | **API Truy vấn** | `https://sandbox.vnpayment.vn/merchant_webapi/api/transaction` |
 | **Thuật toán mã hóa** | HMAC-SHA512 |
@@ -150,7 +150,12 @@ ngrok http 8000
 
 ### 6.2. Cập nhật .env
 ```
-VNP_RETURN_URL=https://<ngrok-url>/api/payment/vnpay/return
+VNP_RETURN_URL=https://eloquent-undusted-survive.ngrok-free.dev/#/payment/return
+```
+
+IPN URL cố định đăng ký với VNPAY:
+```
+https://eloquent-undusted-survive.ngrok-free.dev/api/payment/vnpay/ipn
 ```
 
 ### 6.3. Test tạo thanh toán

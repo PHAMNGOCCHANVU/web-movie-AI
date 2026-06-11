@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Subscription;
 
 use App\Http\Controllers\Controller;
 use App\Models\SubscriptionPlan;
+use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,7 @@ class SubscriptionController extends Controller
     public function plans(): JsonResponse
     {
         $plans = SubscriptionPlan::where('is_active', true)->get();
+
         return response()->json(['data' => $plans]);
     }
 
@@ -77,5 +79,14 @@ class SubscriptionController extends Controller
             ->paginate(20);
 
         return response()->json(['data' => $transactions]);
+    }
+
+    public function paymentStatus(Request $request, $transactionId): JsonResponse
+    {
+        $transaction = Transaction::with('subscriptionPlan')
+            ->where('user_id', $request->user()->id)
+            ->findOrFail($transactionId);
+
+        return response()->json(['data' => $transaction]);
     }
 }

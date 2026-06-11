@@ -22,14 +22,15 @@ class AiChatController extends Controller
 
         $user = $request->user();
 
-        // Rate limit: 20 requests/hour/user (simple check)
+        // Keep the limit configurable so local testing and production can use different quotas.
+        $hourlyLimit = max(1, (int) config('services.gemini.chat_limit_per_hour', 100));
         $recentCount = AiChatConversation::where('user_id', $user->id)
             ->where('created_at', '>=', now()->subHour())
             ->count();
 
-        if ($recentCount >= 20) {
+        if ($recentCount >= $hourlyLimit) {
             return response()->json([
-                'message' => 'Bạn đã đạt giới hạn 20 tin nhắn mỗi giờ. Vui lòng thử lại sau.',
+                'message' => "Bạn đã đạt giới hạn {$hourlyLimit} tin nhắn mỗi giờ. Vui lòng thử lại sau.",
                 'error' => 'rate_limit_exceeded',
             ], 429);
         }
@@ -47,25 +48,52 @@ class AiChatController extends Controller
             ->toArray();
 
         try {
-            $response = $this->aiService->chat($user, $request->message, $history);
+            $result = $this->aiService->chat($user, $request->message, $history);
+            $recommendedMovies = $result['movies'];
 
             // Save conversation
             AiChatConversation::create([
                 'user_id' => $user->id,
                 'message' => $request->message,
-                'response' => $response,
-                'context' => ['history_count' => count($history)],
+                'response' => $result['response'],
+                'context' => [
+                    'history_count' => count($history),
+                    'recommended_movie_ids' => $recommendedMovies->pluck('id')->all(),
+                    'recommendation_reasons' => $recommendedMovies
+                        ->mapWithKeys(fn ($movie) => [
+                            $movie->id => $movie->recommendation_reason,
+                        ])
+                        ->all(),
+                    'suggested_replies' => $result['suggestions'] ?? [],
+                    'grounding_sources' => $result['sources'] ?? [],
+                    'intent' => $result['intent'] ?? [],
+                    'response_source' => $result['source'] ?? 'fallback',
+                    'ai_model' => $result['model'] ?? null,
+                    'fallback_reason' => $result['fallback_reason'] ?? null,
+                ],
             ]);
 
             return response()->json([
                 'data' => [
-                    'response' => $response,
+                    'response' => $result['response'],
+                    'movies' => $recommendedMovies,
+                    'suggestions' => $result['suggestions'] ?? [],
+                    'sources' => $result['sources'] ?? [],
+                    'source' => $result['source'] ?? 'fallback',
+                    'model' => $result['model'] ?? null,
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AI chat controller error: '.$e->getMessage());
+
             return response()->json([
                 'data' => [
                     'response' => 'Trợ lý AI tạm thời không khả dụng, vui lòng thử lại sau hoặc dùng tìm kiếm thủ công.',
+                    'movies' => [],
+                    'suggestions' => [],
+                    'sources' => [],
+                    'source' => 'fallback',
+                    'model' => null,
                 ],
             ]);
         }
@@ -78,6 +106,52 @@ class AiChatController extends Controller
             ->orderBy('created_at', 'desc')
             ->take(100)
             ->get();
+
+        $movieIds = $conversations
+            ->flatMap(fn ($conversation) => $conversation->context['recommended_movie_ids'] ?? [])
+            ->unique();
+        $movies = \App\Models\Movie::whereIn('id', $movieIds)
+            ->with('genres')
+            ->withAvg('ratings', 'score')
+            ->get()
+            ->keyBy('id');
+
+        $conversations->each(function ($conversation) use ($movies) {
+            $reasons = $conversation->context['recommendation_reasons'] ?? [];
+
+            $conversation->setAttribute(
+                'recommended_movies',
+                collect($conversation->context['recommended_movie_ids'] ?? [])
+                    ->map(function ($id) use ($movies, $reasons) {
+                        $movie = $movies->get($id);
+
+                        if ($movie) {
+                            $movie = clone $movie;
+                            $movie->setAttribute('recommendation_reason', $reasons[$id] ?? null);
+                        }
+
+                        return $movie;
+                    })
+                    ->filter()
+                    ->values()
+            );
+            $conversation->setAttribute(
+                'suggested_replies',
+                $conversation->context['suggested_replies'] ?? []
+            );
+            $conversation->setAttribute(
+                'grounding_sources',
+                $conversation->context['grounding_sources'] ?? []
+            );
+            $conversation->setAttribute(
+                'response_source',
+                $conversation->context['response_source'] ?? null
+            );
+            $conversation->setAttribute(
+                'ai_model',
+                $conversation->context['ai_model'] ?? null
+            );
+        });
 
         return response()->json(['data' => $conversations]);
     }

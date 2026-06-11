@@ -83,6 +83,46 @@ class OphimService
         ];
     }
 
+    public function syncMoviesByGenre(string $genreSlug, int $page = 1, int $limit = 12): array
+    {
+        $response = Http::timeout(20)->get("{$this->baseUrl}/v1/api/the-loai/{$genreSlug}", [
+            'page' => $page,
+        ]);
+
+        if (! $response->successful()) {
+            Log::error("Ophim genre movie sync failed for {$genreSlug}: ".$response->body());
+
+            return ['success' => false, 'message' => "Không thể tải phim thể loại {$genreSlug}"];
+        }
+
+        $items = collect($response->json('data.items', []))->take($limit);
+        if ($items->isEmpty()) {
+            return ['success' => false, 'message' => "Không có phim thể loại {$genreSlug}"];
+        }
+
+        $genre = Genre::where('slug', $genreSlug)->first();
+        $slugs = [];
+
+        foreach ($items as $item) {
+            $movie = $this->upsertMovie($item);
+            if (! $movie) {
+                continue;
+            }
+
+            if ($genre) {
+                $movie->genres()->syncWithoutDetaching([$genre->id]);
+            }
+            $slugs[] = $movie->slug;
+        }
+
+        return [
+            'success' => true,
+            'count' => count($slugs),
+            'slugs' => $slugs,
+            'genre' => $genreSlug,
+        ];
+    }
+
     public function syncMovieDetail(string $slug): ?Movie
     {
         $response = Http::timeout(15)->get("{$this->baseUrl}/phim/{$slug}");
@@ -133,7 +173,8 @@ class OphimService
                     'actor' => isset($data['actor']) ? (is_array($data['actor']) ? $data['actor'] : null) : null,
                     'director' => isset($data['director']) ? (is_array($data['director']) ? $data['director'] : null) : null,
                     'country' => isset($data['country']) ? (is_array($data['country']) ? $data['country'] : null) : null,
-                    'status' => 'pending',
+                    // Auto-approve while the admin moderation UI is not available yet.
+                    'status' => 'approved',
                     'last_synced_at' => now(),
                 ]
             );

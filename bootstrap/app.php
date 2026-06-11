@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'check.locked' => \App\Http\Middleware\CheckUserLocked::class,
             'check.subscription' => \App\Http\Middleware\CheckSubscription::class,
+            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

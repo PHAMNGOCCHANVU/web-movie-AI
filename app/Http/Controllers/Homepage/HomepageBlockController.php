@@ -25,6 +25,7 @@ class HomepageBlockController extends Controller
                             $movies = $genre->movies()
                                 ->where('status', 'approved')
                                 ->with('genres')
+                                ->withAvg('ratings', 'score')
                                 ->orderBy('updated_at', 'desc')
                                 ->take(10)
                                 ->get();
@@ -34,6 +35,7 @@ class HomepageBlockController extends Controller
                     case 'latest':
                         $movies = Movie::where('status', 'approved')
                             ->with('genres')
+                            ->withAvg('ratings', 'score')
                             ->orderBy('created_at', 'desc')
                             ->take(10)
                             ->get();
@@ -43,6 +45,7 @@ class HomepageBlockController extends Controller
                         $movies = Movie::where('status', 'approved')
                             ->where('is_pinned', true)
                             ->with('genres')
+                            ->withAvg('ratings', 'score')
                             ->orderBy('updated_at', 'desc')
                             ->take(10)
                             ->get();

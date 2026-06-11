@@ -11,7 +11,7 @@ class EpisodeController extends Controller
 {
     public function index($movieId): JsonResponse
     {
-        $movie = Movie::findOrFail($movieId);
+        $movie = Movie::where('status', 'approved')->findOrFail($movieId);
 
         $episodes = Episode::where('movie_id', $movie->id)
             ->orderBy('server_name')

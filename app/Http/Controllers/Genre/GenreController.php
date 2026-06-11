@@ -22,6 +22,7 @@ class GenreController extends Controller
         $movies = $genre->movies()
             ->where('status', 'approved')
             ->with('genres')
+            ->withAvg('ratings', 'score')
             ->orderBy('updated_at', 'desc')
             ->paginate($request->input('per_page', 20));
 

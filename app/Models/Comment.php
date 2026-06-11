@@ -15,6 +15,14 @@ class Comment extends Model
         'movie_id',
         'content',
         'toxic_score',
+        'moderation_status',
+        'moderation_model',
+        'moderation_score',
+        'moderation_categories',
+        'moderation_reason',
+        'moderated_at',
+        'reviewed_at',
+        'reviewed_by',
         'is_hidden',
         'hidden_at',
         'hidden_by',
@@ -26,6 +34,10 @@ class Comment extends Model
             'is_hidden' => 'boolean',
             'hidden_at' => 'datetime',
             'toxic_score' => 'float',
+            'moderation_score' => 'float',
+            'moderation_categories' => 'array',
+            'moderated_at' => 'datetime',
+            'reviewed_at' => 'datetime',
         ];
     }
 
@@ -42,5 +54,10 @@ class Comment extends Model
     public function hiddenBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'hidden_by');
+    }
+
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 }

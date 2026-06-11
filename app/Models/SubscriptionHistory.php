@@ -12,12 +12,15 @@ class SubscriptionHistory extends Model
     protected $fillable = [
         'user_id', 'subscription_plan_id', 'previous_subscription_plan_id',
         'action', 'amount', 'billing_cycle', 'reason',
+        'subscription_starts_at', 'subscription_expires_at',
     ];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
+            'subscription_starts_at' => 'datetime',
+            'subscription_expires_at' => 'datetime',
         ];
     }
 

@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Admin\CommentModerationController;
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Genre\GenreController;
 use App\Http\Controllers\Homepage\HomepageBlockController;
 use App\Http\Controllers\Movie\CommentController;
@@ -32,10 +34,12 @@ use Illuminate\Http\Request;
 
 // Auth
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [RegisteredUserController::class, 'store']);
-    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
-    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store']);
-    Route::post('/reset-password', [NewPasswordController::class, 'store']);
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/verify-registration-otp', [AuthController::class, 'verifyRegistrationOtp'])->middleware('throttle:10,1');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
+    Route::post('/verify-password-otp', [AuthController::class, 'verifyPasswordOtp'])->middleware('throttle:10,1');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 });
 
 // Movies
@@ -98,6 +102,7 @@ Route::middleware(['auth:sanctum', 'check.locked'])->group(function () {
     Route::get('/user/subscription', [SubscriptionController::class, 'show']);
     Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);
     Route::get('/user/payment-history', [SubscriptionController::class, 'paymentHistory']);
+    Route::get('/user/payments/{transaction}', [SubscriptionController::class, 'paymentStatus']);
     Route::post('/payment/vnpay/create', [VNPayController::class, 'create']);
 
     // Stream (subscription check inside controller)
@@ -181,6 +186,10 @@ Route::middleware(['auth:sanctum', 'check.locked', 'admin'])->prefix('admin')->g
     Route::patch('/comments/{id}/restore', [AdminCommentController::class, 'restore']);       // Khôi phục
     Route::delete('/comments/{id}', [AdminCommentController::class, 'destroy']);              // Xóa
     Route::get('/comments/{id}/sentiment', [AdminCommentController::class, 'sentimentAnalysis']); // AI Sentiment
+
+    // Comment Moderation (backend-2)
+    Route::get('/comment-moderation', [CommentModerationController::class, 'index']);
+    Route::patch('/comment-moderation/{comment}', [CommentModerationController::class, 'review']);
 
     // =========================================================
     // 14. Admin - Transaction Management (Lịch sử Giao dịch)

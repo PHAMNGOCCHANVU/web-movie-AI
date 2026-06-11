@@ -19,6 +19,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'email_verified_at',
+        'phone',
         'password',
         'role_id',
         'subscription_plan_id',
@@ -87,7 +89,7 @@ class User extends Authenticatable
     public function movies(): BelongsToMany
     {
         return $this->belongsToMany(Movie::class, 'movie_user')
-            ->withPivot(['is_favorite', 'watch_progress_seconds', 'episode_id', 'season_id'])
+            ->withPivot(['is_favorite', 'watch_progress_seconds', 'duration_seconds', 'episode_id', 'season_id'])
             ->withTimestamps();
     }
 

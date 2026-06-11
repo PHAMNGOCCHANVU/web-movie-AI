@@ -56,7 +56,7 @@ class Movie extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'movie_user')
-            ->withPivot(['is_favorite', 'watch_progress_seconds', 'episode_id', 'season_id'])
+            ->withPivot(['is_favorite', 'watch_progress_seconds', 'duration_seconds', 'episode_id', 'season_id'])
             ->withTimestamps();
     }
 }

@@ -14,7 +14,7 @@ class StreamController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'require_login', 'message' => 'Vui lòng đăng nhập để xem phim.'], 401);
         }
 
@@ -31,12 +31,12 @@ class StreamController extends Controller
             return response()->json(['error' => 'require_subscription', 'message' => 'Bạn cần đăng ký gói cước để xem phim.'], 403);
         }
 
-        $movie = Movie::findOrFail($movieId);
+        $movie = Movie::where('status', 'approved')->findOrFail($movieId);
 
         // VIP check for premium movies
         if ($movie->is_premium) {
             $isVip = $user->subscriptionPlan && str_starts_with($user->subscriptionPlan->plan_code, 'vip');
-            if (!$isVip) {
+            if (! $isVip) {
                 return response()->json(['error' => 'require_vip_upgrade', 'message' => 'Phim này yêu cầu gói VIP.'], 403);
             }
         }
@@ -52,6 +52,7 @@ class StreamController extends Controller
             // Try first episode or movie stream_url
             $firstEpisode = Episode::where('movie_id', $movie->id)->orderBy('sort_order')->first();
             if ($firstEpisode) {
+                $episodeId = $firstEpisode->id;
                 $streamUrl = $firstEpisode->link_m3u8 ?: $firstEpisode->link_embed;
                 $streamType = $firstEpisode->link_m3u8 ? 'm3u8' : 'embed';
             } else {
@@ -60,7 +61,7 @@ class StreamController extends Controller
             }
         }
 
-        if (!$streamUrl) {
+        if (! $streamUrl) {
             return response()->json(['error' => 'stream_unavailable', 'message' => 'Nguồn phát hiện không khả dụng.'], 404);
         }
 
@@ -74,6 +75,7 @@ class StreamController extends Controller
                 'movie_id' => $movie->id,
                 'movie_name' => $movie->name,
                 'is_premium' => $movie->is_premium,
+                'episode_id' => $episodeId ? (int) $episodeId : null,
             ],
         ]);
     }

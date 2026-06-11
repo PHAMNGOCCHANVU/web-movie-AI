@@ -1,0 +1,165 @@
+<div class="
+  h-screen w-full flex items-center justify-center
+  bg-[#0d0d12] bg-linear-to-br from-[#0d0d12] to-[#1a1a24]
+  font-sans text-white relative px-4">
+    <!-- Trang trí bong bóng background -->
+    <div class="
+    absolute top-1/4 left-1/4 w-96 h-96
+    bg-[#1ed760] rounded-full mix-blend-screen
+    filter blur-[100px] opacity-40 animate-pulse pointer-events-none"></div>
+    <div class="
+    absolute bottom-1/4 right-1/4 w-96 h-96
+    bg-[#1bc055] rounded-full mix-blend-screen
+    filter blur-[100px] opacity-40 animate-pulse pointer-events-none" style="animation-delay: 2s;"></div>
+
+    <!-- Bắt đầu Dialog -->
+    <div class="
+        relative w-[480px] max-w-full h-[520px]
+        bg-[#1c1c28]/80 backdrop-blur-xl rounded-3xl
+        shadow-2xl overflow-hidden border border-white/5
+        flex flex-col pt-10 pb-8">
+        <!-- Nút quay lại login nằm tĩnh ở góc -->
+        <a href="/login" class="
+            absolute top-4 left-4 text-gray-400 hover:text-white
+            transition-colors flex items-center gap-1 text-sm
+            font-medium z-50 rounded-full py-1.5 px-3 hover:bg-white/5">
+            <i class='bx bx-left-arrow-alt text-xl'></i> Trở về
+        </a>
+
+        <div class="w-full h-full relative overflow-hidden flex-1 mt-6">
+
+            <!-- =================== BƯỚC 1: NHẬP EMAIL VÀ OTP =================== -->
+            <div class="
+            absolute inset-0 w-full h-full px-10 flex flex-col justify-center
+            transition-transform duration-500 ease-in-out" [class.translate-x-0]="step === 1"
+                [class.-translate-x-full]="step === 2">
+
+                <div class="text-center mb-8">
+                    <div class="
+                    inline-flex items-center justify-center w-16 h-16
+                    rounded-full bg-white/5 border border-white/10 mb-5
+                    text-[#1ed760] shadow-[0_0_15px_rgba(30,215,96,0.15)]">
+                        <i class='bx bx-fingerprint text-[32px]'></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white tracking-wider mb-2">Khôi phục mật khẩu</h2>
+                    <p class="text-gray-400 text-[13px] px-2 leading-relaxed">
+                        Nhập email đăng ký tài khoản Melono của bạn để nhận mã định danh OTP.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="
+                            bx bx-envelope text-[22px] text-gray-400
+                            group-focus-within:text-[#1ed760] transition-colors
+                        "></i>
+                        </div>
+                        <input type="email" placeholder="Nhập địa chỉ Email" class="
+                        w-full pl-12 pr-4 py-3.5 bg-[#252533]
+                        border border-transparent rounded-xl
+                        focus:outline-none focus:border-[#1ed760] focus:ring-1 focus:ring-[#1ed760]
+                        text-gray-100 placeholder-gray-500 transition-all text-[15px]
+                    ">
+                    </div>
+
+                    <div class="flex gap-3">
+                        <div class="relative group flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="
+                                bx bx-dialpad text-[22px] text-gray-400
+                                group-focus-within:text-[#1ed760] transition-colors"></i>
+                            </div>
+                            <input type="text" placeholder="Mã OTP" maxlength="6" class="
+                            w-full pl-12 pr-4 py-3.5 bg-[#252533]
+                            border border-transparent rounded-xl
+                            focus:outline-none focus:border-[#1ed760] focus:ring-1 focus:ring-[#1ed760]
+                            text-gray-100 placeholder-gray-500 transition-all
+                            tracking-widest font-mono text-[15px]">
+                        </div>
+                        <button class="
+                        px-5 py-3.5 bg-[#252533] border border-white/5
+                        hover:bg-[#2d2d3d] hover:border-white/10 text-[#1ed760]
+                        font-medium rounded-xl transition-all whitespace-nowrap text-[14px]">
+                            Gửi mã
+                        </button>
+                    </div>
+
+                    <!-- Nút mũi tên bấm trượt qua bước 2 -->
+                    <button (click)="goToStep2()" class="
+                    w-full flex items-center justify-center gap-2 py-3.5 mt-6
+                    bg-[#1ed760] hover:bg-[#1bc055] text-black rounded-xl
+                    font-bold text-[15px] shadow-[0_0_20px_rgba(30,215,96,0.2)]
+                    hover:shadow-[0_0_25px_rgba(30,215,96,0.4)] transition-all
+                    transform hover:-translate-y-0.5">
+                        Tiếp tục <i class='bx bx-right-arrow-alt text-[22px]'></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- =================== BƯỚC 2: NHẬP MẬT KHẨU MỚI =================== -->
+            <div class="
+                absolute inset-0 w-full h-full px-10 flex flex-col justify-center
+                transition-transform duration-500 ease-in-out" [class.translate-x-full]="step === 1"
+                [class.translate-x-0]="step === 2">
+
+                <div class="text-center mb-8">
+                    <div class="
+                    inline-flex items-center justify-center w-16 h-16
+                    rounded-full bg-white/5 border border-white/10 mb-5
+                    text-[#1ed760] shadow-[0_0_15px_rgba(30,215,96,0.15)]">
+                        <i class='bx bx-lock-open-alt text-[32px]'></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white tracking-wider mb-2">Tạo mật khẩu an toàn</h2>
+                    <p class="text-gray-400 text-[13px] px-2 leading-relaxed">
+                        Mật khẩu mới của bạn phải khác với các mật khẩu đã được sử dụng trước đây.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="
+                            bx bx-lock-alt text-[22px] text-gray-400
+                            group-focus-within:text-[#1ed760] transition-colors"></i>
+                        </div>
+                        <input type="password" placeholder="Mật khẩu mới" class="
+                        w-full pl-12 pr-4 py-3.5 bg-[#252533]
+                        border border-transparent rounded-xl
+                        focus:outline-none focus:border-[#1ed760] focus:ring-1 focus:ring-[#1ed760]
+                        text-gray-100 placeholder-gray-500 transition-all text-[15px]">
+                    </div>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="
+                            bx bx-check-shield text-[22px] text-gray-400
+                            group-focus-within:text-[#1ed760] transition-colors"></i>
+                        </div>
+                        <input type="password" placeholder="Nhập lại mật khẩu mới" class="
+                        w-full pl-12 pr-4 py-3.5 bg-[#252533]
+                        border border-transparent rounded-xl
+                        focus:outline-none focus:border-[#1ed760] focus:ring-1 focus:ring-[#1ed760]
+                        text-gray-100 placeholder-gray-500 transition-all text-[15px]">
+                    </div>
+
+                    <!-- Cụm nút xác nhận -->
+                    <div class="flex gap-3 mt-8">
+                        <button (click)="goBack()" class="
+                        px-4 bg-[#252533] border border-white/5 hover:bg-[#2d2d3d]
+                        hover:border-white/10 text-gray-300 rounded-xl transition-all
+                        flex items-center justify-center">
+                            <i class='bx bx-left-arrow-alt text-[22px]'></i>
+                        </button>
+                        <button class="
+                        flex-1 py-3.5 bg-[#1ed760] hover:bg-[#1bc055] text-black
+                        rounded-xl font-bold text-[15px] shadow-[0_0_20px_rgba(30,215,96,0.2)]
+                        hover:shadow-[0_0_25px_rgba(30,215,96,0.4)] transition-all
+                        transform hover:-translate-y-0.5">
+                            Đổi mật khẩu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

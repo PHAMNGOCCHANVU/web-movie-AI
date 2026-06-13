@@ -60,24 +60,28 @@ class AdminDashboardController extends Controller
     }
 
     // API 3: Thống kê tổng quan AI Sentiment
-    public function getSentimentOverview()
-    {
-        // Đếm số lượng bình luận theo từng mức độ Toxic (từ AI)
-        $positive = Comment::where('toxic_score', '<', 0.4)->count();
-        $neutral = Comment::whereBetween('toxic_score', [0.4, 0.7])->count();
-        $toxic = Comment::where('toxic_score', '>', 0.7)->count();
-        $unprocessed = Comment::whereNull('toxic_score')->count(); // Chưa được AI quét
+    // API 3: Thống kê tổng quan AI Sentiment
+public function getSentimentOverview() 
+{
+    // Chạy 1 câu truy vấn duy nhất thu thập toàn bộ trạng thái để tránh lỗi so sánh null/float
+    $sentimentCounts = Comment::selectRaw("
+        COUNT(CASE WHEN toxic_score < 0.4 THEN 1 END) as positive_safe,
+        COUNT(CASE WHEN toxic_score >= 0.4 AND toxic_score <= 0.7 THEN 1 END) as neutral_warning,
+        COUNT(CASE WHEN toxic_score > 0.7 THEN 1 END) as toxic_danger,
+        COUNT(CASE WHEN toxic_score IS NULL THEN 1 END) as unprocessed
+    ")->first();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'positive_safe' => $positive,
-                'neutral_warning' => $neutral,
-                'toxic_danger' => $toxic,
-                'unprocessed' => $unprocessed
-            ]
-        ], 200);
-    }
+    return response()->json([
+        'status' => 'success',
+        'data' => [
+            'positive_safe'     => (int) ($sentimentCounts->positive_safe ?? 0),
+            'neutral_warning'   => (int) ($sentimentCounts->neutral_warning ?? 0),
+            'toxic_danger'      => (int) ($sentimentCounts->toxic_danger ?? 0),
+            'unprocessed'       => (int) ($sentimentCounts->unprocessed ?? 0)
+        ]
+    ], 200);
+}
+    
 
     // API 4: Bảng xếp hạng phim Hot (Nhiều bình luận nhất)
     public function getTopMovies(Request $request)

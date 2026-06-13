@@ -1,0 +1,21 @@
+$kind: http-request
+name: Delete Watch History Item
+method: DELETE
+url: '{{base_url}}/user/watch-history/{{movie_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Delete Watch History - Status 200 or 404", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 404]);
+      });
+
+      pm.test("Delete Watch History - Response has message", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("message");
+      });

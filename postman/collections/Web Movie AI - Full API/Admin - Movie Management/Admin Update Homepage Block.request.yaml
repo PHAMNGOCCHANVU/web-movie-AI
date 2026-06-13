@@ -1,0 +1,19 @@
+$kind: http-request
+name: Admin Update Homepage Block
+method: PUT
+url: '{{base_url}}/admin/homepage-blocks/{{block_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "title": "Phim hành động",
+      "source_type": "genre",
+      "source_ref": "1",
+      "is_visible": true,
+      "sort_order": 1
+    }

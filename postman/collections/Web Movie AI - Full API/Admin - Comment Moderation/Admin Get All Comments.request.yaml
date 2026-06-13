@@ -1,0 +1,20 @@
+$kind: http-request
+name: Admin Get All Comments
+method: GET
+url: '{{base_url}}/admin/comments'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+  - key: status
+    value: visible
+  - key: movie_id
+    value: ''
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+description: |
+  Post-moderation: status = visible | hidden (không dùng pending).

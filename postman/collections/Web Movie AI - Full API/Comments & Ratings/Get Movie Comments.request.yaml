@@ -1,0 +1,44 @@
+﻿$kind: http-request
+name: Get Movie Comments
+method: GET
+url: '{{base_url}}/movies/{{movie_id}}/comments'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Movie Comments - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Movie Comments - Response is array or paginated", function () {
+          const json = pm.response.json();
+          const isArray = Array.isArray(json);
+          const isPaginated = json && (Array.isArray(json.data) || Array.isArray(json.comments) || (json.data && Array.isArray(json.data.data)));
+          pm.expect(isArray || isPaginated).to.be.true;
+      });
+
+      pm.test("Get Movie Comments - Each comment has required fields", function () {
+          const json = pm.response.json();
+          const dataObj = json.data || json;
+          const comments = Array.isArray(dataObj) ? dataObj : (dataObj.data || dataObj.comments || []);
+          if (comments.length > 0) {
+              comments.forEach(function (comment) {
+                  pm.expect(comment).to.have.property("id");
+                  pm.expect(comment.content !== undefined || comment.body !== undefined).to.be.true;
+                  pm.expect(comment).to.have.property("user");
+              });
+          }
+      });
+
+      const json = pm.response.json();
+      const dataObj = json.data || json;
+      const comments = Array.isArray(dataObj) ? dataObj : (dataObj.data || dataObj.comments || []);
+      if (comments.length > 0) {
+          pm.environment.set("test_comment_id", comments[0].id.toString());
+          pm.environment.set("comment_id", comments[0].id.toString());
+      }

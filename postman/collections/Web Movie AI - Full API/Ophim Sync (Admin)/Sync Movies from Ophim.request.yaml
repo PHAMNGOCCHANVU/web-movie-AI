@@ -1,0 +1,15 @@
+$kind: http-request
+name: Sync Movies from Ophim
+method: POST
+url: '{{base_url}}/admin/sync/ophim/movies'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "page": 1
+    }

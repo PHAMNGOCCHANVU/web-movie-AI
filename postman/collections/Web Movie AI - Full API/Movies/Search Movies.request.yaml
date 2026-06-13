@@ -1,0 +1,31 @@
+$kind: http-request
+name: Search Movies
+method: GET
+url: '{{base_url}}/movies/search'
+queryParams:
+  - key: keyword
+    value: 'avengers'
+  - key: q
+    value: 'action'
+  - key: year
+    value: ''
+  - key: genre_id
+    value: ''
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Search Movies - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Search Movies - Response has data", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.exist;
+          const data = json.data || json;
+          pm.expect(data).to.exist;
+      });

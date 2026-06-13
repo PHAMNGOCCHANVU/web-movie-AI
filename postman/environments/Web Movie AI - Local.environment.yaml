@@ -1,0 +1,24 @@
+$kind: environment
+name: Web Movie AI - Local
+variables:
+  - key: base_url
+    value: 'http://localhost:8000/api'
+    enabled: true
+  - key: token
+    value: ''
+    enabled: true
+  - key: test_email
+    value: 'testuser@example.com'
+    enabled: true
+  - key: test_password
+    value: 'Password123!'
+    enabled: true
+  - key: test_movie_id
+    value: '1'
+    enabled: true
+  - key: test_genre_id
+    value: '1'
+    enabled: true
+  - key: test_comment_id
+    value: ''
+    enabled: true

@@ -1,0 +1,48 @@
+$kind: http-request
+name: Get All Movies
+method: GET
+url: '{{base_url}}/movies'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+  - key: genre_id
+    value: ''
+  - key: year
+    value: ''
+  - key: type
+    value: 'all'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get All Movies - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get All Movies - Response is array or paginated", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          const items = Array.isArray(data) ? data : (data.data || []);
+          pm.expect(Array.isArray(items)).to.be.true;
+      });
+
+      pm.test("Get All Movies - Each movie has required fields", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          const items = Array.isArray(data) ? data : (data.data || []);
+          if (items.length > 0) {
+              items.forEach(function (movie) {
+                  pm.expect(movie).to.have.property("id");
+                  pm.expect(movie).to.have.property("title");
+              });
+          }
+      });
+
+      const json = pm.response.json();
+      const data = json.data || json;
+      const movies = Array.isArray(data) ? data : (data.data || []);
+      if (movies.length > 0) {
+          pm.environment.set("test_movie_id", movies[0].id.toString());
+      }

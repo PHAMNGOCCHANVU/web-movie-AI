@@ -1,0 +1,21 @@
+$kind: http-request
+name: Remove from Watchlist
+method: DELETE
+url: '{{base_url}}/user/watchlist/{{movie_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Remove from Watchlist - Status 200 or 404", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 404]);
+      });
+
+      pm.test("Remove from Watchlist - Response has message", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("message");
+      });

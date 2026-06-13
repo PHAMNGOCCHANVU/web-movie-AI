@@ -1,0 +1,205 @@
+ĐỀ TÀI: WEB XEM PHIM TRẢ PHÍ TÍCH HỢP AI TÌM KIẾM
+(Mô hình Freemium – Gói Standard / VIP – Thanh toán VNPay Sandbox)
+
+================================================================================
+0. NGUYÊN TẮC THIẾT KẾ HỆ THỐNG
+================================================================================
+• Web xem phim trả phí: metadata phim và nguồn phát (stream) lấy từ Ophim API (phim Việt Nam), URL stream lưu trong DB nội bộ.
+• Phân quyền hệ thống (bắt buộc): chỉ 2 role — User, Admin. Role KHÔNG quyết định quyền xem phim.
+• Quyền xem phim: theo Gói cước (subscription plan) gắn với tài khoản đã đăng nhập.
+• Phân loại nội dung phim: cờ is_premium trên từng phim (do Admin cấu hình).
+• Mô hình thanh toán: Standard & VIP có 2 lựa chọn chu kỳ (tháng/năm):
+  - Hàng tháng (monthly): 49k (Standard) hoặc 99k (VIP), auto-renew hàng tháng
+  - Hàng năm (yearly): 470k (Standard) hoặc 950k (VIP), chiết khấu ~20%, auto-renew hàng năm
+  - User có thể hủy gói bất cứ lúc nào; quyền xem được giữ đến hết kỳ thanh toán hiện tại.
+
+Ma trận quyền xem phim (is_premium):
+| Loại phim          | Guest | Free (đã đăng nhập) | Standard Plan | VIP Plan   |
+|--------------------|-------|---------------------|---------------|------------|
+| is_premium = false | Không | Không (chặn Play)   | Xem được      | Xem được   |
+| is_premium = true  | Không | Không (chặn Play)   | Không         | Xem được   |
+
+Quy tắc rút gọn:
+• is_premium = false → yêu cầu gói Standard trở lên.
+• is_premium = true  → yêu cầu gói VIP.
+
+Các cấp người dùng (theo gói / trạng thái đăng nhập):
+• Cấp 0 – Guest (khách vãng lai): không đăng nhập.
+• Cấp 1 – Free Account: đăng ký/đăng nhập miễn phí (Form hoặc Gmail).
+• Cấp 2 – Standard Plan: thanh toán VNPay hàng tháng (49k) hoặc hàng năm (470k), xem phim is_premium = false.
+• Cấp 3 – VIP Plan: thanh toán VNPay hàng tháng (99k) hoặc hàng năm (950k), xem toàn bộ kho (kể cả is_premium = true).
+• Nâng cấp Standard → VIP: thanh toán toàn bộ phí gói VIP (mô hình giống YouTube Premium / Netflix — không trừ phần đã trả của Standard).
+• Hủy gói: User có thể hủy bất cứ lúc nào; auto_renew tắt ngay, quyền xem vẫn hoạt động đến hết kỳ hiện tại.
+
+================================================================================
+A. PHÂN HỆ GIAO DIỆN NGƯỜI DÙNG (FRONTEND)
+================================================================================
+
+1. Chức năng dành cho Khách (Guest – Chưa đăng nhập)
+• Xác thực: Đăng ký tài khoản, Đăng nhập, Quên mật khẩu (khách có thể truy cập màn hình; thao tác yêu cầu tạo tài khoản).
+• Trang chủ: Xem Slider phim nổi bật/ghim, danh sách phim theo thể loại, phim mới cập nhật.
+• Tìm kiếm & Lọc cơ bản: Tìm theo từ khóa (tên phim), lọc theo năm phát hành, thể loại.
+• Chi tiết phim: Thông tin từ Ophim API (Poster, Trailer YouTube iframe, tóm tắt, rating, diễn viên).
+• Được xem Trailer (YouTube iframe) để trải nghiệm preview, kích thích nhu cầu xem full.
+• Giới hạn: Không được bấm "Xem phim" (Play) — hệ thống yêu cầu đăng nhập. Không dùng AI Chat, không có tủ phim cá nhân.
+
+2. Chức năng dành cho Tài khoản Miễn phí (Free Account – Đã đăng nhập, chưa mua gói)
+• Kế thừa Guest (trừ giới hạn đăng nhập): lướt danh sách, tìm kiếm, xem chi tiết, xem Trailer.
+• Trợ lý AI (AI Movie Assistant): Mở khung chat, nhập prompt; LLM (Gemini / OpenRouter) trả về gợi ý dạng text trong chat (không RAG phức tạp). Dữ liệu ngữ cảnh gửi kèm prompt lấy từ API stream runtime (danh sách phim khả dụng).
+• Quản lý tủ phim: Thêm "Xem sau", xem lịch sử xem.
+• Quản lý tài khoản: Xem/cập nhật thông tin cá nhân, đổi mật khẩu, xem trạng thái gói cước hiện tại (GET /user/subscription).
+• Giới hạn Play: Khi bấm "Xem phim" — chặn và hiển thị yêu cầu mua Gói cước (Standard hoặc VIP tùy is_premium của phim).
+• Thanh toán: Chọn gói (Standard/VIP) & chu kỳ (Monthly/Yearly), thanh toán qua VNPay Sandbox.
+  - Standard Monthly: 49k/tháng (30 ngày) → auto-renew tháng sau
+  - Standard Yearly: 470k/năm (365 ngày, 20% off) → auto-renew năm sau
+  - VIP Monthly: 99k/tháng (30 ngày) → auto-renew tháng sau
+  - VIP Yearly: 950k/năm (365 ngày, 20% off) → auto-renew năm sau
+
+3. Chức năng dành cho Người dùng Gói Tiêu chuẩn (Standard Plan)
+• Kế thừa toàn bộ chức năng Free Account.
+• Đặc quyền xem phim: Play các phim is_premium = false (URL stream từ DB).
+• Trải nghiệm: Xem phim chất lượng cao (theo URL stream được cấu hình).
+• Giới hạn: Play phim is_premium = true — chặn, yêu cầu nâng cấp VIP Plan.
+• Nâng cấp: Chọn VIP Plan (Monthly hoặc Yearly) và thanh toán qua VNPay với số tiền bằng đúng giá niêm yết của gói VIP (trả full).
+• Hủy gói: Có thể hủy bất cứ lúc nào (POST /subscription/cancel); auto-renew tắt, quyền xem giữ đến hết kỳ thanh toán.
+
+4. Chức năng dành cho Người dùng Gói Cao cấp (VIP Plan)
+• Kế thừa toàn bộ chức năng Standard Plan.
+• Đặc quyền xem phim: Play toàn bộ kho, gồm phim Mới/Hot (is_premium = true).
+• Trải nghiệm: Xem phim chất lượng cao.
+• Hủy gói: Có thể hủy bất cứ lúc nào (POST /subscription/cancel); auto-renew tắt, quyền xem giữ đến hết kỳ thanh toán.
+
+================================================================================
+B. PHÂN HỆ QUẢN TRỊ HỆ THỐNG (ADMIN DASHBOARD)
+================================================================================
+(Chỉ role Admin truy cập)
+
+1. Quản lý Tổng quan (Dashboard)
+• Thống kê cơ bản: Số người dùng mới (theo kỳ), số tài khoản đang active Standard / VIP, tổng doanh thu, top phim hot (lượt xem / tương tác).
+• Thống kê cảm xúc khán giả (đề xuất triển khai):
+  - Phạm vi: toàn hệ thống và theo từng phim.
+  - Nguồn: phân tích từ khóa đơn giản trên nội dung bình luận đã hiển thị (không dùng ML nặng trong MVP).
+  - Phân loại: Tích cực / Tiêu cực / Trung tính (rule-based từ danh sách từ khóa Việt + Anh cơ bản).
+  - Lưu ý: chỉ mang tính tham khảo, không dùng làm KPI pháp lý; cập nhật theo lô (cache/job), không realtime từng giây.
+
+2. Quản lý Phim & Nội dung
+• Đồng bộ metadata từ Ophim API (poster, mô tả, cast, trailer…).
+• Gán / cập nhật URL stream (nguồn API phim bên thứ ba) vào DB nội bộ cho từng phim (hoặc tập phim nếu có).
+• Phân loại Freemium: Cài đặt is_premium = true/false.
+• Ghim nội dung: Chọn phim từ DB phim (đã sync) để ghim lên Slider trang chủ (is_pinned).
+• Quản lý khối danh mục trang chủ (đề xuất):
+  - Mỗi khối (block) là một mục hiển thị trên trang chủ: ví dụ "Phim hành động", "Mới cập nhật", "Đang hot".
+  - Thuộc tính: tên hiển thị, loại nguồn (genre_id / rule: mới nhất / ghim / custom), is_visible, sort_order.
+  - Admin ẩn/hiện và kéo thả thứ tự khối; không nhầm với bảng genre thuần — genre là dữ liệu, homepage_block là cấu hình UI.
+
+3. Quản lý Người dùng
+• Xem danh sách, chi tiết người dùng.
+• Phân quyền hệ thống: gán role User hoặc Admin (không gán VIP qua role).
+• Xem / điều chỉnh gói cước hiện tại (plan, billing cycle, expires_at) khi cần hỗ trợ.
+• Khóa / mở khóa tài khoản (is_locked).
+• Xem lịch sử hủy gói: cancelled_at, cancellation_reason (hỗ trợ customer hoặc tái kích hoạt).
+• Quản lý subscription_history: Xem audit trail của tất cả thay đổi gói cước (purchased, renewed, upgraded, cancelled, expired).
+
+4. Quản lý Tương tác (Moderation bình luận)
+• Chỉ Admin duyệt thủ công — KHÔNG triển khai AI duyệt tự động trong phạm vi đề tài.
+• Quy trình đề xuất (post-moderation):
+  1) User đăng bình luận → hiển thị ngay trên trang phim (status: visible).
+  2) Admin xem danh sách bình luận (lọc theo phim, ngày, từ khóa).
+  3) Admin ẩn (hide) hoặc xóa bình luận vi phạm (chửi thề, spam, độc hại).
+  4) Admin có thể khôi phục (restore) bình luận bị ẩn nhầm.
+• Ghi log hành động  & Subscription
+• Xem lịch sử thanh toán VNPay: pending / success / failed.
+• Đối soát theo mã giao dịch (vnp_txn_ref), gói đã mua (subscription_plan_id), chu kỳ (billing_cycle).
+• Theo dõi transaction types: purchase, renewal, upgrade, cancellation (còn refund là tương lai).
+• Kích hoạt quyền gói khi IPN/callback xác nhận thành công (idempotent — không cộng quyền trùng).
+• Xem ghi chú about auto-renewal status của từng transaction (is_auto_renewal fla
+• Đối soát theo mã giao dịch (vnp_txn_ref), gói đã mua (package_id).
+• Kích hoạt quyền gói khi IPN/callback xác nhận thành công (idempotent — không cộng quyền trùng).
+
+================================================================================
+C. CHỨC NĂNG HỆ THỐNG & KIẾN TRÚC BACKEND
+================================================================================
+
+1. Đồng bộ dữ liệu
+• Ophim API (Laravel HTTP Client): metadata phim, genre, cast, trailer.
+• API stream bên thứ ba: lấy URL phát, lưu vào DB; Play chỉ trả URL khi user đủ quyền gói.
+
+2. Caching
+• Laravel Cache: danh sách phim hot, genre, khối trang chủ — giảm gọi API bên thứ ba.
+
+3. AI Assistant (phạm vi kỹ thuật)
+• Luồng: User prompt → Backend gọi LLM (Gemini free tier hoặc OpenRouter) kèm snapshot danh sách phim từ API stream → trả text trong khung chat.
+• Không RAG vector DB trong MVP.
+• Lưu lịch sử hội thoại (đề xuất): 30 ngày / tối đa 100 tin nhắn gần nhất mỗi user; cho phép user xóa lịch sử.
+• Rate limit (đề xuất): tối đa 20 request AI / user / giờ.
+• Fallback khi LLM lỗi: trả message trong chat "Trợ lý AI tạm thời không khả dụng, vui lòng thử lại sau hoặc dùng tìm kiếm thủ công." — không crash trang.
+
+4. Thanh toán VNPay Sandbox & Subscription Lifecycle
+
+**4.1 Purchase Flow (Mua gói lần đầu)**
+• User chọn gói (Standard/VIP) & chu kỳ (Monthly/Yearly):
+  - Standard Monthly: 49,000 VND (30 ngày), auto-renew hàng tháng
+  - Standard Yearly: 470,400 VND (365 ngày, 20% off), auto-renew hàng năm
+  - VIP Monthly: 99,000 VND (30 ngày), auto-renew hàng tháng
+  - VIP Yearly: 950,400 VND (365 ngày, 20% off), auto-renew hàng năm
+• Tạo giao dịch pending (POST /payment/vnpay/create {plan_code, billing_cycle}) + redirect URL thanh toán.
+• Return URL (frontend) + IPN (backend): xác nhận trạng thái.
+• Chỉ khi success: Cập nhật users (subscription_plan_id, subscription_starts_at = now, subscription_expires_at = now + duration_days, subscription_status = "active", auto_renew = true); Ghi transaction log (transaction_type = "purchase", billing_cycle); Ghi subscription_history (action = "purchased").
+
+**4.2 Renewal Flow (Gia hạn gói, hàng tháng/năm)**
+• Khi subscription_expires_at tới gần hoặc hết:
+  - Frontend nhắc nhở user gia hạn (7 ngày trước)
+  - User click "Renew" → tạo VNPay transaction mới với amount = giá gói (auto-renew flag = true)
+  - Khi success: Cập nhật users (subscription_starts_at = now, subscription_expires_at = now + duration_days); Ghi transaction log (transaction_type = "renewal", is_auto_renewal = false); Ghi subscription_history (action = "renewed").
+• Nếu không renew: subscription_expires_at tới → subscription_status = "expired", ghi subscription_history (action = "expired").
+
+**4.3 Upgrade Flow (Standard → VIP)**
+• User ở Standard Plan muốn nâng cấp VIP:
+  - Chọn VIP (Monthly hoặc Yearly) → POST /payment/vnpay/create {plan_code: "vip_monthly" hoặc "vip_yearly"}
+  - Amount = giá đầy đủ của gói VIP (không prorate)
+  - Khi success: Cập nhật users (subscription_plan_id = VIP plan, subscription_starts_at = now, subscription_expires_at = now + duration_days); Ghi transaction log (transaction_type = "upgrade", previous_subscription_plan_id = Standard plan ID); Ghi subscription_history (action = "upgraded", previous_subscription_plan_id)
+  - UI hiển thị rõ: "Nâng cấp lên VIP — thanh toán [giá VIP đầy đủ]" trước khi redirect VNPay.
+
+**4.4 Cancellation Flow (Hủy gói bất cứ lúc nào)**
+• User gọi POST /subscription/cancel {cancellation_reason?}:
+  - Cập nhật users: auto_renew = false, cancelled_at = now, cancellation_reason = reason
+  - Phản hồi: "Gói cước của bạn sẽ kết thúc vào [subscription_expires_at]. Bạn vẫn có quyền xem phim cho đến ngày đó."
+  - Ghi subscription_history: action = "cancelled", reason
+  - ⚠️ Quyền xem KHÔNG bị mất ngay — được giữ đến hết kỳ thanh toán hiện tại
+  - Khi hết hạn: subscription_status tự động = "expired"
+
+**Lưu ý quan trọng: Cơ Chế Thanh Toán Giả Lập (VNPay Sandbox)**
+*   Sử dụng môi trường VNPay Sandbox để kiểm thử tính năng mua gói cước (Không dùng tiền thật, sử dụng thẻ test NCB do VNPay cung cấp).
+*   **Yêu cầu kỹ thuật bắt buộc:**
+    1. Cấu hình múi giờ (GMT+7) khi tạo chuỗi để né lỗi lệch giờ trên server Vercel.
+    2. Triển khai Endpoint ở Backend để tiếp nhận kết quả thanh toán tự động (Server-to-Server), đảm bảo user được nâng cấp gói ngay cả khi tắt tab trình duyệt.
+    3. Viết Middleware bảo mật ở Backend: Check gói đăng ký của user trước khi trả về link stream .m3u8, không bảo mật lỏng lẻo bằng cách chỉ ẩn/hiện nút ở Frontend.
+
+**4.5 Admin Manual Override (Hỗ trợ khách hàng)**
+• Admin PATCH /admin/users/{id}/subscription để: cấp gói miễn phí, kéo dài hạn, tái kích hoạt gói đã hủy.
+• Tất cả thay đổi ghi vào subscription_history & admin_activity_logs (action, old_plan, new_plan, reason).
+
+5. API Stream & Play
+• GET stream: kiểm tra đăng nhập + plan + is_premium → trả URL hoặc mã lỗi (require_login | require_subscription | require_vip_upgrade).
+
+================================================================================
+D. BẢO MẬT & PHÁP LÝ (ĐỀ XUẤT TỐI THIỂU)
+================================================================================
+• Xác thực API: Laravel Sanctum (Bearer token); đăng xuất thu hồi token.
+• Mật khẩu: hash bcrypt; quên mật khẩu qua email token có thời hạn.
+• Admin route: middleware role admin + ghi admin_activity_logs.
+• Rate limit: login, AI chat, comment post.
+• Dữ liệu cá nhân: chỉ admin được xem email/phone; không log plaintext password.
+• Phạm vi đồ án: nội dung phim/stream phục vụ mục đích học tập/demo; tuân thủ điều khoản API Ophim và nhà cung cấp stream; không phát hành thương mại bản quyền trái phép.
+
+================================================================================
+E. PHẠM VI MVP (ƯU TIÊN TRIỂN KHAI)
+================================================================================
+Bắt buộc:
+• Auth (đăng ký, đăng nhập, quên MK), Guest/Free/Standard/VIP matrix, Ophim API sync, stream URL DB, VNPay Sandbox, Admin CRUD phim + is_premium + ghim, Moderation thủ công, Dashboard thống kê cơ bản.
+
+Có thể làm sau / đơn giản hóa:
+• Sentiment rule-based nâng cao, đăng nhập Gmail OAuth (nếu chưa kịp thì Form trước).
+
+Không nằm trong phạm vi đề tài:
+• AI duyệt bình luận tự động, RAG phức tạp cho AI chat.

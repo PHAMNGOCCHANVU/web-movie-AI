@@ -1,0 +1,11 @@
+$kind: http-request
+name: Get Dashboard Stats
+method: GET
+url: '{{base_url}}/admin/dashboard/stats'
+description: |
+  new_users, active_standard, active_vip, revenue, top_movies.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

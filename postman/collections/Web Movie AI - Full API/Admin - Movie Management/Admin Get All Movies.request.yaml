@@ -1,0 +1,18 @@
+$kind: http-request
+name: Admin Get All Movies
+method: GET
+url: '{{base_url}}/admin/movies'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+  - key: is_premium
+    value: ''
+  - key: is_pinned
+    value: ''
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

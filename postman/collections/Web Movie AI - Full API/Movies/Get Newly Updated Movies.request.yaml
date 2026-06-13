@@ -1,0 +1,23 @@
+$kind: http-request
+name: Get Newly Updated Movies
+method: GET
+url: '{{base_url}}/movies/new-updated'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Newly Updated Movies - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Newly Updated Movies - Response has data", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.exist;
+          const data = json.data || json;
+          pm.expect(data).to.exist;
+      });

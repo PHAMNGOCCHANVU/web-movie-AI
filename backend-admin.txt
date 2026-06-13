@@ -1,0 +1,65 @@
+## CONTEXT CHO AI AGENT: HỆ THỐNG WEBSITE XEM PHIM (ETL & ADMIN MODERATION WORKFLOW)## 1. Tổng Quan Dự Án & Kiến Trúc Công Nghệ
+
+* Mục tiêu: Xây dựng website xem phim (đồ án tốt nghiệp/môn học) có tính năng tự động thu thập và kiểm duyệt nội dung.
+* Môi trường triển khai: Deploy miễn phí trên Vercel (Serverless, giới hạn Timeout hàm Backend khoảng 10-15 giây).
+* Database: Sử dụng MySQL miễn phí (dung lượng giới hạn 1GB). Chỉ lưu trữ dữ liệu dạng chữ (Text/JSON/URLs), không lưu file ảnh hay video trực tiếp để tiết kiệm dung lượng.
+* Nguồn dữ liệu: Sử dụng duy nhất các API phim miễn phí tại Việt Nam (ví dụ: Ophim API, KKPhim API). Các API này cung cấp đồng thời cả thông tin phim (metadata) và luồng stream video (định dạng .m3u8 hoặc Iframe) trong cùng một cấu trúc JSON.
+
+## 2. Tư Duy Thiết Kế Hệ Thống
+Hệ thống vận hành theo mô hình Nhà kho trung gian (ETL - Extract, Transform, Load) kết hợp với Luồng phê duyệt của Admin (Admin Moderation Workflow). Website không gọi trực tiếp API nguồn ra Frontend của người dùng, mà phải nhập thô về hệ thống, làm sạch qua Admin, sau đó mới "bày lên kệ" cho User xem.
+## 3. Quy Trình Làm Sạch Dữ Liệu 3 Bước (Data Sanitization & UX)
+
+* Bước 1: Làm sạch dữ liệu chữ (Backend tự động - Extract & Filter):
+* Khi gọi API nguồn về, code Backend tự động quét qua tiêu đề, mô tả và thể loại.
+   * Tự động loại bỏ hoặc đánh dấu từ chối đối với các phim chứa từ khóa nhạy cảm, cá độ, nội dung người lớn (18+, adult, C18, gambling, sòng bài...).
+   * Chuẩn hóa dữ liệu thô (sửa lỗi font, lỗi chính tả, kiểm tra xem link poster có bị lỗi 404 không). Lưu vào Database với trạng thái mặc định là status = 'pending'.
+* Bước 2: Kiểm duyệt luồng video (Admin duyệt thực tế - Transform & Approve):
+* Trang Admin cung cấp giao diện quản lý danh sách phim pending và tích hợp một Trình phát video xem trước (Preview Player).
+   * Admin bấm xem thử thực tế luồng phát để kiểm tra độ ổn định và mức độ chèn quảng cáo.
+   * Nếu phim có nhiều Server phát, Admin chọn Server sạch nhất (ít quảng cáo, luồng phát mượt), xóa các server lỗi.
+   * Admin bấm Approve (Duyệt) để chuyển trạng thái phim thành status = 'approved' (cho phép hiển thị ra trang chủ User) hoặc bấm Reject (Từ chối) để xóa hẳn khỏi DB.
+* Bước 3: Làm sạch trải nghiệm người dùng (Frontend Player - Load & Display):
+* Vì quảng cáo chèn sẵn trong luồng video (In-stream Ads) thuộc về server nguồn và không thể xóa bằng code Backend, hệ thống sẽ kiểm soát quảng cáo bằng cách tối ưu trình phát ở Frontend.
+   * Đối với link .m3u8 (HLS): Sử dụng thư viện Plyr hoặc Video.js kết hợp với Hls.js để tự code trình phát. Vì tự làm chủ Player, Frontend sẽ chặn đứng 100% các quảng cáo dạng nhảy cửa sổ (pop-up) hoặc tab mới khi User tương tác click.
+   * Đối với link Iframe: Nhúng qua thẻ <iframe> kèm thuộc tính an toàn sandbox="allow-scripts allow-same-origin" để vô hiệu hóa quyền tự động mở tab quảng cáo của iframe nguồn.
+
+## 4. Sơ Đồ Vận Hành Chi Tiết (Workflow Diagram)
+
+[API PHIM VIỆT NAM] 
+       │
+       ▼ (Backend gọi theo đợt, giới hạn 20 phim/lần để tránh timeout Vercel)
+[BƯỚC 1: BACKEND AUTOMATIC FILTER]
+       │ ──► Kiểm tra từ khóa 18+, cá độ, sửa lỗi dữ liệu thô
+       ▼
+[MYSQL DATABASE] (Lưu thông tin chữ + Link stream với status = 'pending')
+       │
+       ▼ (Admin tải dữ liệu lên trang quản trị)
+[BƯỚC 2: ADMIN MODERATION PANEL]
+       │ ──► Admin bấm Play xem thử (Preview Player)
+       │ ──► Lọc chọn Server tốt nhất, xóa Server lỗi
+       ├───────────────────────────────┐
+       ▼ (Nếu ĐẠT YÊU CẦU)              ▼ (Nếu KHÔNG ĐẠT/RÁC)
+ [Nút APPROVE]                   [Nút REJECT]
+       │                               │
+       ▼ (Chuyển status = 'approved')  ▼ (Xóa khỏi Database)
+[MYSQL DATABASE]                 [THÙNG RÁC]
+       │
+       ▼ (User truy cập trang chủ: SELECT * WHERE status = 'approved')
+[USER WEBSITE INTERFACE]
+       │
+       ▼ (User bấm nút Xem phim - Watch)
+[BƯỚC 3: FRONTEND PLAYER (Plyr / Hls.js)]
+       └──► Giải mã luồng .m3u8 trực tiếp, chặn hoàn toàn Pop-up quảng cáo.
+
+## 5. Thiết Kế Cơ Sở Dữ Liệu Tối Ưu (MySQL Schema)
+
+* Bảng movies: Lưu thông tin cốt lõi (ID, Tiêu đề, Tên gốc, Link Poster, Mô tả, Năm phát hành, Thể loại, Trạng thái status kiểu ENUM).
+* Bảng episodes: Lưu luồng stream theo cơ chế khóa ngoại nối với bảng phim (ID phim, Tên tập phim, Link Stream .m3u8 hoặc Iframe được chọn).
+* Giới hạn số lượng: Thiết lập hạn mức lưu trữ khoảng 300 - 500 phim sạch được phân bổ đều cho các thể loại phổ biến để đảm bảo hiệu năng và không vượt quá giới hạn 1GB.
+
+## 6. Mẹo Bảo Vệ Đồ Án (Demo Tips)
+
+* Xây dựng một danh sách từ 5-10 bộ phim "Ruột" (đã được Admin kiểm duyệt kỹ, luồng phim chạy mượt và hoàn toàn không bị chèn quảng cáo hình ảnh ở đầu video).
+* Khi thuyết trình và demo tính năng xem phim trước Hội đồng chấm thi, chỉ thực hiện thao tác trên các bộ phim "Ruột" này để đảm bảo trải nghiệm giao diện sạch sẽ, chuyên nghiệp tuyệt đối.
+
+

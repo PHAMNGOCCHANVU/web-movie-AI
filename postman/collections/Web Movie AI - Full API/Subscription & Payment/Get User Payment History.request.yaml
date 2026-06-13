@@ -1,0 +1,23 @@
+﻿$kind: http-request
+name: Get User Payment History
+method: GET
+url: '{{base_url}}/user/payment-history'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Payment History - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Payment History - Response is array or has transactions", function () {
+          const json = pm.response.json();
+          const dataObj = json.data || json;
+          const items = Array.isArray(dataObj) ? dataObj : (dataObj.data || dataObj.transactions || []);
+          pm.expect(Array.isArray(items)).to.be.true;
+      });

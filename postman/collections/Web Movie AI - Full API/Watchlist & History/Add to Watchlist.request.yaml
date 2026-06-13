@@ -1,0 +1,29 @@
+$kind: http-request
+name: Add to Watchlist
+method: POST
+url: '{{base_url}}/user/watchlist'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "movie_id": 1
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Add to Watchlist - Status 200 or 201 or 409", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 409]);
+      });
+
+      pm.test("Add to Watchlist - Response has message or data", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.satisfy(function (d) {
+              return d.hasOwnProperty("message") || d.hasOwnProperty("data");
+          });
+      });

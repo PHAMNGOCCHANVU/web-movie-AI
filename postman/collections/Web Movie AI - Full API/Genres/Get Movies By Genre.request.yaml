@@ -1,0 +1,23 @@
+$kind: http-request
+name: Get Movies By Genre
+method: GET
+url: '{{base_url}}/genres/{{genre_id}}/movies'
+queryParams:
+  - key: page
+    value: '1'
+  - key: limit
+    value: '20'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Movies By Genre - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Movies By Genre - Response has data", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.exist;
+          const data = json.data || json;
+          pm.expect(data).to.exist;
+      });

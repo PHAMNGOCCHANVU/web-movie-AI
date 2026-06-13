@@ -1,0 +1,27 @@
+﻿$kind: http-request
+name: Cancel Subscription
+method: POST
+url: '{{base_url}}/subscription/cancel'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "cancellation_reason": "Táº¡m thá»i khÃ´ng cáº§n xem phim"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Cancel Subscription - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Cancel Subscription - Response has message", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("message");
+      });

@@ -1,0 +1,9 @@
+$kind: http-request
+name: Delete AI Chat History
+method: DELETE
+url: '{{base_url}}/ai/chat/history'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

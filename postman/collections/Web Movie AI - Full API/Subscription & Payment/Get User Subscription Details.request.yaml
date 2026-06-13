@@ -1,0 +1,24 @@
+﻿$kind: http-request
+name: Get User Subscription Details
+method: GET
+url: '{{base_url}}/user/subscription'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Subscription Details - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Subscription Details - Check active status", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          const user = data.user || data;
+          pm.expect(user).to.have.property("subscription_status");
+          pm.expect(user.subscription_status).to.be.oneOf(["active", "none", "expired"]);
+      });

@@ -1,0 +1,15 @@
+$kind: http-request
+name: Set Movie Premium Status
+method: PATCH
+url: '{{base_url}}/admin/movies/{{movie_id}}/premium'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "is_premium": true
+    }

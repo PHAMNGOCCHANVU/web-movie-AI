@@ -1,0 +1,37 @@
+﻿$kind: http-request
+name: Login
+method: POST
+url: '{{base_url}}/auth/login'
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{test_email}}",
+      "password": "{{test_password}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Login - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Login - Response has token", function () {
+          const json = pm.response.json();
+          const token = json.token || (json.data && json.data.token) || json.access_token;
+          pm.expect(token).to.be.a('string').and.not.empty;
+      });
+
+      pm.test("Login - Token saved to environment", function () {
+          const json = pm.response.json();
+          const token = json.token || (json.data && json.data.token) || json.access_token;
+          pm.expect(token).to.be.a('string').and.not.empty;
+          pm.environment.set("token", token);
+      });
+
+      pm.test("Login - Response has user data", function () {
+          const json = pm.response.json();
+          const user = json.user || (json.data && json.data.user) || json.data;
+          pm.expect(user).to.be.an('object');
+      });

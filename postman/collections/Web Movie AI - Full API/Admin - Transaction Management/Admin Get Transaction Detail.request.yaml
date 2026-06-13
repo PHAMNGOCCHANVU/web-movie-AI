@@ -1,0 +1,9 @@
+$kind: http-request
+name: Admin Get Transaction Detail
+method: GET
+url: '{{base_url}}/admin/transactions/{{transaction_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

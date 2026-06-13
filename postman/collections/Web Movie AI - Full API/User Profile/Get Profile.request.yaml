@@ -1,0 +1,33 @@
+$kind: http-request
+name: Get Profile
+method: GET
+url: '{{base_url}}/user/profile'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+description: |
+  Đồng bộ subscription với /auth/me (plan_code, status, expires_at).
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Get Profile - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Get Profile - Has user fields", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.any.keys("id", "email", "name");
+      });
+
+      pm.test("Get Profile - Has subscription info", function () {
+          const json = pm.response.json();
+          const data = json.data || json;
+          pm.expect(data).to.satisfy(function (d) {
+              return d.hasOwnProperty("subscription") ||
+                     d.hasOwnProperty("plan_code") ||
+                     d.hasOwnProperty("subscription_status");
+          });
+      });

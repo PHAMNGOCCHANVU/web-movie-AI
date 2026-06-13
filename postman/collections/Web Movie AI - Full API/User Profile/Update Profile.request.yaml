@@ -1,0 +1,30 @@
+$kind: http-request
+name: Update Profile
+method: PUT
+url: '{{base_url}}/user/profile'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test User Updated",
+      "phone": "0901234567"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Update Profile - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Update Profile - Profile updated successfully", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.satisfy(function (d) {
+              return d.hasOwnProperty("message") || d.hasOwnProperty("data");
+          });
+      });

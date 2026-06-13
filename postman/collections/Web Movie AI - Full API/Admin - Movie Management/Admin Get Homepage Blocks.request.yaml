@@ -1,0 +1,9 @@
+$kind: http-request
+name: Admin Get Homepage Blocks
+method: GET
+url: '{{base_url}}/admin/homepage-blocks'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

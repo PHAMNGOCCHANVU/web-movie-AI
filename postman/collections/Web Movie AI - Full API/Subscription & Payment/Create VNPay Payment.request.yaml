@@ -1,0 +1,34 @@
+﻿$kind: http-request
+name: Create VNPay Payment
+method: POST
+url: '{{base_url}}/payment/vnpay/create'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "plan_code": "standard_monthly",
+      "billing_cycle": "monthly",
+      "transaction_type": "purchase"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Create Payment - Status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Create Payment - Has required fields", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("data");
+          pm.expect(json.data).to.have.property("payment_url");
+          pm.expect(json.data).to.have.property("transaction_id");
+          pm.expect(json.data).to.have.property("vnp_txn_ref");
+          
+          pm.environment.set("test_vnp_txn_ref", json.data.vnp_txn_ref);
+      });

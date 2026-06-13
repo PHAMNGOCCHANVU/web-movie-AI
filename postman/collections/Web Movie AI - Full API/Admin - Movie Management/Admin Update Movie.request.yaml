@@ -1,0 +1,18 @@
+$kind: http-request
+name: Admin Update Movie
+method: PUT
+url: '{{base_url}}/admin/movies/{{movie_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+body:
+  type: json
+  content: |-
+    {
+      "is_premium": true,
+      "is_pinned": false,
+      "stream_url": "https://example.com/stream/movie-1.m3u8",
+      "stream_source": "third_party_api"
+    }

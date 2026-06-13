@@ -1,0 +1,15 @@
+$kind: http-request
+name: Stream Movie
+method: GET
+url: '{{base_url}}/movies/{{movie_id}}/stream'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+description: |
+  Response 200: { "stream_url": "..." } khi đủ quyền gói + is_premium.
+  Response 403 codes:
+  - require_login (Guest)
+  - require_subscription (Free, phim is_premium=false)
+  - require_vip_upgrade (Standard, phim is_premium=true)

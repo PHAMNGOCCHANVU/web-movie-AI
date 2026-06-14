@@ -23,3 +23,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.env.example
+backend-admin.txt
+context.txt
+plan.md 
+READ.md 
+STATUS-CODEBASE-BE1.md
+status.md 
+vnpay_plan.md

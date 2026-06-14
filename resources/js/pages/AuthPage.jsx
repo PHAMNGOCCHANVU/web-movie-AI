@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUi } from '../context/UiContext';
 
 export default function AuthPage({ mode = 'login' }) {
-    const { isAuthenticated, login, register, verifyRegistrationOtp } = useAuth();
+    const { user, isAuthenticated, login, register, verifyRegistrationOtp } = useAuth();
     const { toast } = useUi();
     const navigate = useNavigate();
     const location = useLocation();
@@ -42,7 +42,7 @@ export default function AuthPage({ mode = 'login' }) {
     }, [mode]);
 
     if (isAuthenticated) {
-        return <Navigate replace to="/" />;
+        return <Navigate replace to={user?.role?.name === 'admin' ? '/admin/dashboard' : '/'} />;
     }
 
     const isLogin = activeMode === 'login';
@@ -71,8 +71,10 @@ export default function AuthPage({ mode = 'login' }) {
             }
 
             if (isLogin) {
-                await login({ email: form.email, password: form.password });
+                const loggedInUser = await login({ email: form.email, password: form.password });
                 toast('Đăng nhập thành công.');
+                navigate(loggedInUser?.role?.name === 'admin' ? '/admin/dashboard' : '/', { replace: true });
+                return;
             } else if (registrationOtpStep) {
                 await verifyRegistrationOtp(form.email, form.otp);
                 toast('Xác thực email và đăng ký thành công.');

@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUi } from '../context/UiContext';
 import { movieImage, paginatePayload, stripHtml, youtubeEmbedUrl } from '../utils';
 
-const HOME_GENRES = ['hanh-dong', 'tinh-cam', 'co-trang', 'kinh-di'];
+const HOME_GENRES = ['hanh-dong', 'tinh-cam', 'hai-huoc', 'co-trang'];
 
 export default function HomePage() {
     const { toast, openModal, closeModal } = useUi();

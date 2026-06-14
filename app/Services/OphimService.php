@@ -14,15 +14,19 @@ class OphimService
 
     public function __construct()
     {
-        $this->baseUrl = env('OPHIM_BASE_URL', 'https://ophim1.com');
+        $this->baseUrl = rtrim(
+            (string) config('services.ophim.base_url', 'https://ophim1.com'),
+            '/'
+        );
     }
 
     public function syncGenres(): array
     {
         $response = Http::timeout(15)->get("{$this->baseUrl}/the-loai");
 
-        if (!$response->successful()) {
-            Log::error('Ophim API genre sync failed: ' . $response->body());
+        if (! $response->successful()) {
+            Log::error('Ophim API genre sync failed: '.$response->body());
+
             return ['success' => false, 'message' => 'Không thể kết nối Ophim API'];
         }
 
@@ -55,8 +59,9 @@ class OphimService
             'limit' => $limit,
         ]);
 
-        if (!$response->successful()) {
-            Log::error('Ophim API movie sync failed: ' . $response->body());
+        if (! $response->successful()) {
+            Log::error('Ophim API movie sync failed: '.$response->body());
+
             return ['success' => false, 'message' => 'Không thể kết nối Ophim API'];
         }
 
@@ -127,8 +132,9 @@ class OphimService
     {
         $response = Http::timeout(15)->get("{$this->baseUrl}/phim/{$slug}");
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::warning("Ophim detail sync failed for slug: {$slug}");
+
             return null;
         }
 
@@ -148,7 +154,7 @@ class OphimService
     protected function upsertMovie(array $data): ?Movie
     {
         $slug = $data['slug'] ?? null;
-        if (!$slug) {
+        if (! $slug) {
             return null;
         }
 
@@ -173,8 +179,8 @@ class OphimService
                     'actor' => isset($data['actor']) ? (is_array($data['actor']) ? $data['actor'] : null) : null,
                     'director' => isset($data['director']) ? (is_array($data['director']) ? $data['director'] : null) : null,
                     'country' => isset($data['country']) ? (is_array($data['country']) ? $data['country'] : null) : null,
-                    // Auto-approve while the admin moderation UI is not available yet.
-                    'status' => 'approved',
+                    // Movies imported from OPhim must be reviewed by admin before users can see them.
+                    'status' => 'pending',
                     'last_synced_at' => now(),
                 ]
             );
@@ -183,7 +189,7 @@ class OphimService
             if (isset($data['category']) && is_array($data['category'])) {
                 foreach ($data['category'] as $cat) {
                     $genre = Genre::where('slug', $cat['slug'] ?? $cat['name'])->first();
-                    if (!$genre) {
+                    if (! $genre) {
                         $genre = Genre::create([
                             'ophim_id' => $cat['_id'] ?? null,
                             'name' => $cat['name'],
@@ -196,7 +202,8 @@ class OphimService
 
             return $movie;
         } catch (\Exception $e) {
-            Log::error("Failed to upsert movie {$slug}: " . $e->getMessage());
+            Log::error("Failed to upsert movie {$slug}: ".$e->getMessage());
+
             return null;
         }
     }
@@ -206,7 +213,7 @@ class OphimService
         foreach ($episodesData as $server) {
             $serverName = $server['server_name'] ?? 'Unknown';
 
-            if (!isset($server['server_data']) || !is_array($server['server_data'])) {
+            if (! isset($server['server_data']) || ! is_array($server['server_data'])) {
                 continue;
             }
 

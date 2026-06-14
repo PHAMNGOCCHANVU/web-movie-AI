@@ -199,6 +199,7 @@ export default function WatchPage() {
                             autoPlay
                             className="aspect-video w-full bg-black"
                             onPause={() => saveProgress(true)}
+                            onEnded={() => saveProgress(true)}
                             onLoadedMetadata={(event) => {
                                 if (progressRef.current > 0 && progressRef.current < event.currentTarget.duration) {
                                     event.currentTarget.currentTime = progressRef.current;

@@ -63,4 +63,14 @@ return [
         'timeout' => (int) env('MODERATION_TIMEOUT', 30),
     ],
 
+    'ophim' => [
+        'base_url' => env('OPHIM_BASE_URL', 'https://ophim1.com'),
+    ],
+
+    'admin_seed' => [
+        'name' => env('ADMIN_NAME', 'CineON Admin'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
 ];

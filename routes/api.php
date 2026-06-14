@@ -1,7 +1,14 @@
 <?php
 
-use App\Http\Controllers\AI\AiChatController;
+use App\Http\Controllers\Admin\AdminCommentController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminHomepageBlockController;
+use App\Http\Controllers\Admin\AdminMovieController;
+use App\Http\Controllers\Admin\AdminTransactionController;
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\CommentModerationController;
+use App\Http\Controllers\Admin\OphimSyncController;
+use App\Http\Controllers\AI\AiChatController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Genre\GenreController;
 use App\Http\Controllers\Homepage\HomepageBlockController;
@@ -97,6 +104,48 @@ Route::middleware(['auth:sanctum', 'check.locked'])->group(function () {
     Route::delete('/ai/chat/history', [AiChatController::class, 'clearHistory']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats']);
+        Route::get('/dashboard/revenue', [AdminDashboardController::class, 'revenue']);
+        Route::get('/dashboard/sentiment', [AdminDashboardController::class, 'sentiment']);
+        Route::get('/dashboard/top-movies', [AdminDashboardController::class, 'topMovies']);
+        Route::get('/movies/top-views', [AdminDashboardController::class, 'topViewedMovies']);
+
+        Route::get('/movies', [AdminMovieController::class, 'index']);
+        Route::post('/movies', [AdminMovieController::class, 'store']);
+        Route::get('/movies/{movie}', [AdminMovieController::class, 'show']);
+        Route::put('/movies/{movie}', [AdminMovieController::class, 'update']);
+        Route::delete('/movies/{movie}', [AdminMovieController::class, 'destroy']);
+        Route::patch('/movies/{movie}/approve', [AdminMovieController::class, 'approve']);
+        Route::patch('/movies/{movie}/reject', [AdminMovieController::class, 'reject']);
+        Route::patch('/movies/{movie}/premium', [AdminMovieController::class, 'togglePremium']);
+        Route::patch('/movies/{movie}/pin', [AdminMovieController::class, 'togglePin']);
+        Route::get('/categories', [AdminMovieController::class, 'categories']);
+        Route::put('/categories/{genre}', [AdminMovieController::class, 'updateCategory']);
+
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{user}', [AdminUserController::class, 'show']);
+        Route::patch('/users/{user}/role', [AdminUserController::class, 'updateRole']);
+        Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus']);
+        Route::patch('/users/{user}/subscription', [AdminUserController::class, 'updateSubscription']);
+
+        Route::get('/comments', [AdminCommentController::class, 'index']);
+        Route::patch('/comments/{comment}/approve', [AdminCommentController::class, 'approve']);
+        Route::patch('/comments/{comment}/hide', [AdminCommentController::class, 'hide']);
+        Route::patch('/comments/{comment}/restore', [AdminCommentController::class, 'restore']);
+        Route::delete('/comments/{comment}', [AdminCommentController::class, 'destroy']);
+        Route::get('/comments/{comment}/sentiment', [AdminCommentController::class, 'sentiment']);
+
+        Route::get('/transactions', [AdminTransactionController::class, 'index']);
+        Route::get('/transactions/{id}', [AdminTransactionController::class, 'show']);
+
+        Route::get('/homepage-blocks', [AdminHomepageBlockController::class, 'index']);
+        Route::post('/homepage-blocks', [AdminHomepageBlockController::class, 'store']);
+        Route::put('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'update']);
+        Route::delete('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'destroy']);
+
+        Route::post('/sync/ophim/movies', [OphimSyncController::class, 'movies']);
+        Route::post('/sync/ophim/genres', [OphimSyncController::class, 'genres']);
+
         Route::get('/comment-moderation', [CommentModerationController::class, 'index']);
         Route::patch('/comment-moderation/{comment}', [CommentModerationController::class, 'review']);
     });

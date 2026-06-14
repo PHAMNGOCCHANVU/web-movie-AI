@@ -9,6 +9,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\VerifyPasswordOtpRequest;
 use App\Http\Requests\Auth\VerifyRegistrationOtpRequest;
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\PasswordResetOtpNotification;
 use App\Notifications\RegistrationOtpNotification;
@@ -79,12 +80,14 @@ class AuthController extends Controller
         }
 
         $user = DB::transaction(function () use ($record, $email) {
+            $userRole = Role::firstOrCreate(['name' => 'user']);
+
             $user = User::create([
                 'name' => $record->name,
                 'email' => $email,
                 'email_verified_at' => now(),
                 'password' => $record->password,
-                'role_id' => 2,
+                'role_id' => $userRole->id,
                 'subscription_status' => 'none',
                 'auto_renew' => false,
             ]);

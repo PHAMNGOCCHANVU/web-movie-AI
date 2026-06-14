@@ -18,6 +18,15 @@ import PaymentReturnPage from './pages/PaymentReturnPage';
 import PlansPage from './pages/PlansPage';
 import SearchPage from './pages/SearchPage';
 import WatchPage from './pages/WatchPage';
+import AdminLayout from './pages/admin/AdminLayout';
+import CommentModerationPage from './pages/admin/CommentModerationPage';
+import DashboardPage from './pages/admin/DashboardPage';
+import HomepageBlockPage from './pages/admin/HomepageBlockPage';
+import MovieFormPage from './pages/admin/MovieFormPage';
+import MovieManagementPage from './pages/admin/MovieManagementPage';
+import TransactionPage from './pages/admin/TransactionPage';
+import UserDetailPage from './pages/admin/UserDetailPage';
+import UserManagementPage from './pages/admin/UserManagementPage';
 
 function ProtectedRoute() {
     const { isAuthenticated, loading } = useAuth();
@@ -51,6 +60,18 @@ export default function App() {
                     <Route path="/account" element={<AccountPage />} />
                     <Route path="/watch/:movieId" element={<WatchPage />} />
                 </Route>
+            </Route>
+            <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Navigate replace to="/admin/dashboard" />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="movies" element={<MovieManagementPage />} />
+                <Route path="movies/new" element={<MovieFormPage />} />
+                <Route path="movies/:id/edit" element={<MovieFormPage />} />
+                <Route path="users" element={<UserManagementPage />} />
+                <Route path="users/:id" element={<UserDetailPage />} />
+                <Route path="transactions" element={<TransactionPage />} />
+                <Route path="comments" element={<CommentModerationPage />} />
+                <Route path="homepage-blocks" element={<HomepageBlockPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
         </Routes>

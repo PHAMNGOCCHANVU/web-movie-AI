@@ -5,243 +5,183 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Genre;
 use App\Models\Movie;
-use App\Models\Episode;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AdminMovieController extends Controller
 {
-    // =========================================================
-    // NHÓM 1: QUẢN LÝ THỂ LOẠI (CATEGORIES / GENRES)
-    // =========================================================
-
-    // API 1: Lấy toàn bộ danh sách Thể loại
-    public function getCategories()
+    public function index(Request $request): JsonResponse
     {
-        $categories = Genre::all();
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Lấy danh sách thể loại thành công',
-            'data' => $categories
-        ], 200);
-    }
-
-    // API 2: Cập nhật tên Thể loại
-    public function updateCategory(Request $request, string $id)
-    {
-        $category = Genre::find($id);
-        if (!$category) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy thể loại này'], 404);
-        }
-
-        $category->name = $request->input('name');
-        $category->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Cập nhật thể loại thành công',
-            'data' => $category
-        ], 200);
-    }
-
-    // =========================================================
-    // NHÓM 2: QUẢN LÝ PHIM (MOVIE CRUD)
-    // =========================================================
-
-    // API 3: Lấy danh sách toàn bộ Phim (Có lọc theo status và phân trang)
-    public function getAllMovies(Request $request)
-    {
-        $query = Movie::with('genres')->orderBy('created_at', 'desc');
-
-        // Bổ sung bộ lọc status cho Admin (Ví dụ: lọc phim 'pending' để duyệt)
-        if ($request->has('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        $movies = $query->paginate(10);
-        
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Lấy danh sách phim thành công',
-            'data' => $movies
-        ], 200);
-    }
-
-    // API 4: Thêm phim mới (Thủ công)
-    public function createMovie(Request $request)
-    {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'release_date' => 'nullable|date',
-            'duration' => 'nullable|integer',
-            'poster_url' => 'nullable|string',
-            'trailer_url' => 'nullable|string',
-            'is_premium' => 'boolean',
-            'is_pinned' => 'boolean',
-            'genre_ids' => 'array',
-            'tmdb_id' => 'nullable|integer|unique:movies,tmdb_id'
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in(['pending', 'approved', 'rejected'])],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $movie = Movie::create($validatedData);
+        $movies = Movie::query()
+            ->with('genres:id,name,slug')
+            ->when($validated['search'] ?? null, function ($query, string $search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', "%{$search}%")
+                        ->orWhere('origin_name', 'like', "%{$search}%");
+                });
+            })
+            ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->latest()
+            ->paginate($validated['limit'] ?? 10);
 
-        if ($request->has('genre_ids')) {
-            $movie->genres()->attach($request->input('genre_ids'));
-        }
+        return response()->json(['status' => 'success', 'data' => $movies]);
+    }
+
+    public function show(Movie $movie): JsonResponse
+    {
+        return response()->json(['status' => 'success', 'data' => $movie->load('genres:id,name,slug')]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $this->validateMovie($request);
+        $genreIds = $validated['genres'] ?? $validated['genre_ids'] ?? [];
+        unset($validated['genres'], $validated['genre_ids']);
+        $validated['slug'] = $this->uniqueSlug($validated['slug'] ?? $validated['name']);
+        $validated['time'] ??= $validated['duration'] ?? null;
+        unset($validated['duration']);
+
+        $movie = DB::transaction(function () use ($validated, $genreIds) {
+            $movie = Movie::create($validated);
+            $movie->genres()->sync($genreIds);
+
+            return $movie;
+        });
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Thêm phim mới thành công',
-            'data' => Movie::with('genres')->find($movie->id)
+            'message' => 'Thêm phim thành công.',
+            'data' => $movie->load('genres:id,name,slug'),
         ], 201);
     }
 
-    // API 5: Cập nhật thông tin Phim
-    public function updateMovie(Request $request, string $id)
+    public function update(Request $request, Movie $movie): JsonResponse
     {
-        $movie = Movie::find($id);
-        if (!$movie) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
+        $validated = $this->validateMovie($request, $movie);
+        $genreIds = $validated['genres'] ?? $validated['genre_ids'] ?? null;
+        unset($validated['genres'], $validated['genre_ids']);
+        if (array_key_exists('duration', $validated)) {
+            $validated['time'] = $validated['duration'];
+            unset($validated['duration']);
+        }
+        if (isset($validated['slug'])) {
+            $validated['slug'] = $this->uniqueSlug($validated['slug'], $movie->id);
         }
 
-        $validatedData = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'release_date' => 'nullable|date',
-            'duration' => 'nullable|integer',
-            'poster_url' => 'nullable|string',
-            'trailer_url' => 'nullable|string',
-            'is_premium' => 'boolean',
-            'is_pinned' => 'boolean',
-            'genre_ids' => 'array'
+        DB::transaction(function () use ($movie, $validated, $genreIds) {
+            $movie->update($validated);
+            if (is_array($genreIds)) {
+                $movie->genres()->sync($genreIds);
+            }
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cập nhật phim thành công.',
+            'data' => $movie->fresh()->load('genres:id,name,slug'),
         ]);
-
-        $movie->update($validatedData);
-
-        if ($request->has('genre_ids')) {
-            $movie->genres()->sync($request->input('genre_ids'));
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Cập nhật phim thành công',
-            'data' => Movie::with('genres')->find($id)
-        ], 200);
     }
 
-    // API 6: Xóa Phim
-    public function deleteMovie(string $id)
+    public function destroy(Movie $movie): JsonResponse
     {
-        $movie = Movie::find($id);
-        if (!$movie) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
-        }
-
-        $movie->episodes()->delete(); // Xóa các tập phim trước
-        $movie->genres()->detach();   // Gỡ liên kết thể loại
-        $movie->delete();             // Xóa phim
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Đã xóa phim thành công!'
-        ], 200);
-    }
-
-    // =========================================================
-    // NHÓM 3: THAO TÁC NHANH (QUICK ACTIONS)
-    // =========================================================
-
-    // API 7: Bật/Tắt trạng thái Premium
-    public function togglePremium(string $id)
-    {
-        $movie = Movie::find($id);
-        if (!$movie) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
-        }
-
-        $movie->is_premium = !$movie->is_premium; 
-        $movie->save();
-
-        $statusText = $movie->is_premium ? 'Premium (Trả phí)' : 'Free (Miễn phí)';
-        return response()->json([
-            'status' => 'success',
-            'message' => "Đã chuyển phim sang trạng thái: $statusText"
-        ], 200);
-    }
-
-    // API 8: Ghim/Bỏ ghim phim lên Slider Trang chủ
-    public function togglePin(string $id)
-    {
-        $movie = Movie::find($id);
-        if (!$movie) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
-        }
-
-        $movie->is_pinned = !$movie->is_pinned; 
-        $movie->save();
-
-        $statusText = $movie->is_pinned ? 'Đã ghim phim lên trang chủ' : 'Đã gỡ ghim khỏi trang chủ';
-        return response()->json([
-            'status' => 'success',
-            'message' => $statusText
-        ], 200);
-    }
-
-    // =========================================================
-    // NHÓM 4: KIỂM DUYỆT PHIM (MODERATION WORKFLOW)
-    // =========================================================
-
-    // API 9: Duyệt phim (Chuyển status từ pending -> approved)
-    public function approveMovie(string $id)
-    {
-        $movie = Movie::find($id);
-        if (!$movie) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
-        }
-
-        // Chuyển trạng thái sang đã duyệt
-        $movie->status = 'approved';
-        $movie->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Đã DUYỆT bộ phim: {$movie->name}. Phim đã được hiển thị ra trang chủ."
-        ], 200);
-    }
-
-    // API 10: Từ chối phim (Xóa phim rác khỏi hệ thống)
-    public function rejectMovie(string $id)
-    {
-        $movie = Movie::find($id);
-        if (!$movie) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phim'], 404);
-        }
-
-        // Lưu ý: Phải xóa các tập phim (episodes) liên kết trước để tránh lỗi khóa ngoại
-        $movie->episodes()->delete(); 
-        
-        // Gỡ liên kết thể loại và xóa phim
-        $movie->genres()->detach();
         $movie->delete();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => "Đã TỪ CHỐI và xóa vĩnh viễn phim: {$movie->name}."
-        ], 200);
+        return response()->json(['status' => 'success', 'message' => 'Đã xóa phim.']);
     }
 
-    // API 11: Xóa một luồng phát / server lỗi cụ thể
-    public function deleteEpisode(string $id)
+    public function approve(Movie $movie): JsonResponse
     {
-        $episode = Episode::find($id);
-        if (!$episode) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy luồng phát này'], 404);
+        $movie->update(['status' => 'approved']);
+
+        return response()->json(['status' => 'success', 'message' => 'Đã duyệt phim.']);
+    }
+
+    public function reject(Movie $movie): JsonResponse
+    {
+        $movie->update(['status' => 'rejected', 'is_pinned' => false]);
+
+        return response()->json(['status' => 'success', 'message' => 'Đã từ chối phim.']);
+    }
+
+    public function togglePremium(Movie $movie): JsonResponse
+    {
+        $movie->update(['is_premium' => ! $movie->is_premium]);
+
+        return response()->json(['status' => 'success', 'data' => $movie->fresh()]);
+    }
+
+    public function togglePin(Movie $movie): JsonResponse
+    {
+        $movie->update(['is_pinned' => ! $movie->is_pinned]);
+
+        return response()->json(['status' => 'success', 'data' => $movie->fresh()]);
+    }
+
+    public function categories(): JsonResponse
+    {
+        return response()->json(['status' => 'success', 'data' => Genre::query()->orderBy('name')->get()]);
+    }
+
+    public function updateCategory(Request $request, Genre $genre): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('genres', 'slug')->ignore($genre->id)],
+        ]);
+        $validated['slug'] ??= Str::slug($validated['name']);
+        $genre->update($validated);
+
+        return response()->json(['status' => 'success', 'data' => $genre]);
+    }
+
+    private function validateMovie(Request $request, ?Movie $movie = null): array
+    {
+        return $request->validate([
+            'name' => [$movie ? 'sometimes' : 'required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255'],
+            'origin_name' => ['nullable', 'string', 'max:255'],
+            'content' => ['nullable', 'string'],
+            'type' => ['nullable', 'string', 'max:255'],
+            'thumb_url' => ['nullable', 'string', 'max:2048'],
+            'poster_url' => ['nullable', 'string', 'max:2048'],
+            'trailer_url' => ['nullable', 'string', 'max:2048'],
+            'quality' => ['nullable', 'string', 'max:255'],
+            'lang' => ['nullable', 'string', 'max:255'],
+            'year' => ['nullable', 'integer', 'min:1888', 'max:2100'],
+            'time' => ['nullable', 'string', 'max:255'],
+            'duration' => ['nullable', 'string', 'max:255'],
+            'episode_current' => ['nullable', 'string', 'max:255'],
+            'episode_total' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in(['pending', 'approved', 'rejected'])],
+            'is_premium' => ['nullable', 'boolean'],
+            'is_pinned' => ['nullable', 'boolean'],
+            'genres' => ['nullable', 'array'],
+            'genres.*' => ['integer', 'exists:genres,id'],
+            'genre_ids' => ['nullable', 'array'],
+            'genre_ids.*' => ['integer', 'exists:genres,id'],
+        ]);
+    }
+
+    private function uniqueSlug(string $value, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($value) ?: Str::random(8);
+        $slug = $base;
+        $suffix = 2;
+
+        while (Movie::where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
         }
 
-        $episode->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Đã xóa server phát lỗi: {$episode->name}."
-        ], 200);
+        return $slug;
     }
 }

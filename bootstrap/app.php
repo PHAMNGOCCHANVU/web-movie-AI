@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Auth\AuthenticationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
+
+        $middleware->redirectGuestsTo(fn ($request) => $request->is('api/*') ? null : '/#/login');
+
         $middleware->alias([
             'check.locked' => \App\Http\Middleware\CheckUserLocked::class,
             'check.subscription' => \App\Http\Middleware\CheckSubscription::class,
@@ -19,6 +24,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (AuthenticationException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Bạn cần đăng nhập để thực hiện chức năng này.',
+                    'error' => 'unauthenticated',
+                ], 401);
+            }
+        });
+
         $exceptions->shouldRenderJsonWhen(function ($request, $e) {
             return $request->is('api/*') || $request->expectsJson();
         });

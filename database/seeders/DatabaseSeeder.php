@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,10 +19,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             SubscriptionPlanSeeder::class,
+            AdminUserSeeder::class,
         ]);
 
         // Seed Genre
-        $genreId = \Illuminate\Support\Facades\DB::table('genres')->insertGetId([
+        $genreId = DB::table('genres')->insertGetId([
             'name' => 'Hành động',
             'slug' => 'hanh-dong',
             'created_at' => now(),
@@ -29,7 +31,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Seed Movies
-        $movie1Id = \Illuminate\Support\Facades\DB::table('movies')->insertGetId([
+        $movie1Id = DB::table('movies')->insertGetId([
             'ophim_id' => 'movie1',
             'slug' => 'phim-standard',
             'name' => 'Phim Standard',
@@ -39,7 +41,7 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        $movie2Id = \Illuminate\Support\Facades\DB::table('movies')->insertGetId([
+        $movie2Id = DB::table('movies')->insertGetId([
             'ophim_id' => 'movie2',
             'slug' => 'phim-premium',
             'name' => 'Phim VIP',
@@ -50,13 +52,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Associate Genre to Movies
-        \Illuminate\Support\Facades\DB::table('genre_movie')->insert([
+        DB::table('genre_movie')->insert([
             ['genre_id' => $genreId, 'movie_id' => $movie1Id],
             ['genre_id' => $genreId, 'movie_id' => $movie2Id],
         ]);
 
         // Seed Episodes
-        \Illuminate\Support\Facades\DB::table('episodes')->insert([
+        DB::table('episodes')->insert([
             [
                 'movie_id' => $movie1Id,
                 'server_name' => 'Vietsub #1',

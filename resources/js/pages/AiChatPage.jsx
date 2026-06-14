@@ -118,13 +118,6 @@ export default function AiChatPage() {
                                     <div className="chat-avatar">{message.role === 'assistant' ? <Bot size={20} /> : <UserRound size={20} />}</div>
                                     <div className="chat-response">
                                         <div className="chat-bubble whitespace-pre-wrap">{message.content}</div>
-                                        {message.role === 'assistant' && message.source && (
-                                            <span className={`chat-source chat-source--${message.source}`}>
-                                                {message.source === 'gemini'
-                                                    ? `Gemini AI${message.model ? ` · ${message.model}` : ''}`
-                                                    : 'Phản hồi dự phòng'}
-                                            </span>
-                                        )}
                                         {message.role === 'assistant' && message.movies?.length > 0 && (
                                             <div className="chat-movie-row">
                                                 {message.movies.map((movie) => (

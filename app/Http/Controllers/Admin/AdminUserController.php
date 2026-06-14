@@ -3,175 +3,134 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Role; 
-use App\Models\SubscriptionPlan;
+use App\Models\Role;
 use App\Models\SubscriptionHistory;
+use App\Models\SubscriptionPlan;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class AdminUserController extends Controller
 {
-    // API 1: LẤY DANH SÁCH NGƯỜI DÙNG (Có bộ lọc & phân trang)
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        // Khởi tạo truy vấn, tự động nối bảng Role và SubscriptionPlan (Eager Loading)
-        $query = User::with(['role', 'subscriptionPlan'])->orderBy('created_at', 'desc');
-
-        // Lọc theo Role (nếu Postman có gửi tham số ?role=...)
-        if ($request->filled('role')) {
-            $query->whereHas('role', function ($q) use ($request) {
-                $q->where('name', $request->input('role'));
-            });
-        }
-
-        // Lọc theo Trạng thái (nếu Postman có gửi tham số ?status=locked/active)
-        if ($request->filled('status')) {
-            $isLocked = $request->input('status') === 'locked' ? true : false;
-            $query->where('is_locked', $isLocked);
-        }
-
-        // Cắt trang theo số limit (Mặc định 20 nếu Postman không gửi)
-        $limit = $request->input('limit', 20);
-        $users = $query->paginate($limit);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Lấy danh sách người dùng thành công',
-            'data' => $users
-        ], 200);
-    }
-
-    // API 2: XEM CHI TIẾT 1 NGƯỜI DÙNG
-    public function show(string $id)
-    {
-        $user = User::with(['role', 'subscriptionPlan'])->find($id);
-
-        if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy người dùng'], 404);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $user
-        ], 200);
-    }
-
-    // API 3: THAY ĐỔI QUYỀN (Role)
-    public function updateRole(Request $request, string $id)
-    {
-        $user = User::find($id);
-        if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy người dùng'], 404);
-        }
-
-        // Lấy tên quyền Postman gửi lên (VD: "vip") và dò tìm ID trong database
-        $roleName = $request->input('role'); 
-        $role = Role::where('name', $roleName)->first();
-
-        if (!$role) {
-            return response()->json(['status' => 'error', 'message' => "Không tìm thấy quyền: $roleName"], 400);
-        }
-
-        // Cập nhật và lưu lại
-        $user->role_id = $role->id;
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Cập nhật phân quyền thành công',
-            'data' => User::with('role')->find($id)
-        ], 200);
-    }
-
-    // API 4: KHÓA / MỞ KHÓA TÀI KHOẢN (Status)
-    public function updateStatus(Request $request, string $id)
-    {
-        $user = User::find($id);
-        if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy người dùng'], 404);
-        }
-
-        // Kiểm tra biến 'status' Postman gửi lên
-        $status = $request->input('status'); 
-
-        if ($status === 'locked') {
-            $user->is_locked = true;
-            $message = 'Đã khóa tài khoản thành công';
-        } else {
-            $user->is_locked = false;
-            $message = 'Đã mở khóa tài khoản thành công';
-        }
-
-        $user->save();
-        
-        return response()->json([
-            'status' => 'success',
-            'message' => $message
-        ], 200);
-    }
-
-    // API 5: CẬP NHẬT GÓI CƯỚC THỦ CÔNG (Admin Manual Override)
-    public function updateSubscription(Request $request, string $id)
-    {
-        $user = User::find($id);
-        if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy người dùng'], 404);
-        }
-
         $validated = $request->validate([
-            'plan_code' => 'required|string|exists:subscription_plans,plan_code',
-            'subscription_status' => 'required|string|in:active,expired,cancelled,suspended',
-            'subscription_starts_at' => 'nullable|date',
-            'subscription_expires_at' => 'nullable|date',
-            'auto_renew' => 'boolean',
-            'cancelled_at' => 'nullable|date',
-            'cancellation_reason' => 'nullable|string',
+            'search' => ['nullable', 'string', 'max:255'],
+            'role' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in(['active', 'locked'])],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $plan = SubscriptionPlan::where('plan_code', $validated['plan_code'])->firstOrFail();
+        $users = User::query()
+            ->with(['role:id,name', 'subscriptionPlan'])
+            ->when($validated['search'] ?? null, function ($query, string $search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($validated['role'] ?? null, fn ($query, $role) => $query->whereHas('role', fn ($q) => $q->where('name', $role)))
+            ->when(isset($validated['status']), fn ($query) => $query->where('is_locked', $validated['status'] === 'locked'))
+            ->latest()
+            ->paginate($validated['limit'] ?? 10);
 
-        // Áp dụng logic xác định action phù hợp cho enum của subscription_history
-        $action = 'purchased';
-        if ($validated['subscription_status'] === 'expired') {
-            $action = 'expired';
-        } elseif ($validated['subscription_status'] === 'cancelled') {
-            $action = 'cancelled';
-        } elseif ($user->subscription_plan_id) {
-            if ($user->subscription_plan_id !== $plan->id) {
-                $action = 'upgraded';
-            } else {
-                $action = 'renewed';
-            }
-        }
+        $users->getCollection()->transform(fn (User $user) => $this->present($user));
 
-        // Ghi log vào subscription_history trước khi đổi
-        SubscriptionHistory::create([
-            'user_id' => $user->id,
-            'action' => $action,
-            'subscription_plan_id' => $plan->id,
-            'previous_subscription_plan_id' => $user->subscription_plan_id,
-            'amount' => 0.00,
-            'billing_cycle' => $plan->billing_cycle_type === 'yearly' ? 'yearly' : 'monthly',
-            'reason' => 'Admin manual override: ' . ($validated['cancellation_reason'] ?? 'No reason provided'),
-            'subscription_starts_at' => $validated['subscription_starts_at'],
-            'subscription_expires_at' => $validated['subscription_expires_at'],
-        ]);
+        return response()->json(['status' => 'success', 'data' => $users]);
+    }
 
-        // Cập nhật thông tin User
-        $user->update([
-            'subscription_plan_id' => $plan->id,
-            'subscription_status' => $validated['subscription_status'],
-            'subscription_starts_at' => $validated['subscription_starts_at'],
-            'subscription_expires_at' => $validated['subscription_expires_at'],
-            'auto_renew' => $validated['auto_renew'] ?? false,
-            'cancelled_at' => $validated['cancelled_at'],
-            'cancellation_reason' => $validated['cancellation_reason'],
-        ]);
-
+    public function show(User $user): JsonResponse
+    {
         return response()->json([
             'status' => 'success',
-            'message' => 'Cập nhật gói cước người dùng thành công',
-            'data' => User::with(['role', 'subscriptionPlan'])->find($id)
-        ], 200);
+            'data' => $this->present($user->load(['role:id,name', 'subscriptionPlan'])),
+        ]);
+    }
+
+    public function updateRole(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate(['role' => ['required', 'string', 'exists:roles,name']]);
+        $role = Role::where('name', $validated['role'])->firstOrFail();
+        $user->update(['role_id' => $role->id]);
+
+        return response()->json(['status' => 'success', 'data' => $this->present($user->fresh(['role', 'subscriptionPlan']))]);
+    }
+
+    public function updateStatus(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate(['status' => ['required', Rule::in(['active', 'locked'])]]);
+        if ($request->user()->is($user) && $validated['status'] === 'locked') {
+            return response()->json(['message' => 'Không thể tự khóa tài khoản đang đăng nhập.'], 422);
+        }
+        $user->update(['is_locked' => $validated['status'] === 'locked']);
+
+        return response()->json(['status' => 'success', 'data' => $this->present($user->fresh(['role', 'subscriptionPlan']))]);
+    }
+
+    public function updateSubscription(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'plan_code' => ['nullable', 'string', 'exists:subscription_plans,plan_code'],
+            'status' => ['nullable', Rule::in(['active', 'expired', 'cancelled', 'none'])],
+            'subscription_status' => ['nullable', Rule::in(['active', 'expired', 'cancelled', 'none'])],
+            'starts_at' => ['nullable', 'date'],
+            'expires_at' => ['nullable', 'date'],
+            'subscription_starts_at' => ['nullable', 'date'],
+            'subscription_expires_at' => ['nullable', 'date'],
+            'auto_renew' => ['nullable', 'boolean'],
+            'cancellation_reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $plan = isset($validated['plan_code'])
+            ? SubscriptionPlan::where('plan_code', $validated['plan_code'])->firstOrFail()
+            : null;
+        $status = $validated['subscription_status'] ?? $validated['status'] ?? ($plan ? 'active' : 'none');
+        $startsAt = $validated['subscription_starts_at'] ?? $validated['starts_at'] ?? ($plan ? now() : null);
+        $expiresAt = $validated['subscription_expires_at'] ?? $validated['expires_at'] ?? null;
+        $previousPlanId = $user->subscription_plan_id;
+
+        DB::transaction(function () use ($user, $plan, $status, $startsAt, $expiresAt, $previousPlanId, $validated) {
+            $user->update([
+                'subscription_plan_id' => $plan?->id,
+                'subscription_status' => $status,
+                'subscription_starts_at' => $startsAt,
+                'subscription_expires_at' => $expiresAt,
+                'auto_renew' => $validated['auto_renew'] ?? false,
+                'cancelled_at' => $status === 'cancelled' ? now() : null,
+                'cancellation_reason' => $validated['cancellation_reason'] ?? null,
+            ]);
+
+            SubscriptionHistory::create([
+                'user_id' => $user->id,
+                'action' => $status === 'cancelled' ? 'cancelled' : ($previousPlanId ? 'upgraded' : 'purchased'),
+                'subscription_plan_id' => $plan?->id,
+                'previous_subscription_plan_id' => $previousPlanId,
+                'amount' => 0,
+                'billing_cycle' => $plan?->billing_cycle_type,
+                'reason' => 'Admin cập nhật thủ công.',
+                'subscription_starts_at' => $startsAt,
+                'subscription_expires_at' => $expiresAt,
+            ]);
+        });
+
+        return response()->json(['status' => 'success', 'data' => $this->present($user->fresh(['role', 'subscriptionPlan']))]);
+    }
+
+    private function present(User $user): array
+    {
+        return [
+            ...$user->toArray(),
+            'status' => $user->is_locked ? 'locked' : 'active',
+            'subscription' => $user->subscription_plan_id ? [
+                'plan_code' => $user->subscriptionPlan?->plan_code,
+                'plan' => $user->subscriptionPlan,
+                'status' => $user->subscription_status,
+                'starts_at' => $user->subscription_starts_at,
+                'expires_at' => $user->subscription_expires_at,
+                'auto_renew' => $user->auto_renew,
+            ] : null,
+        ];
     }
 }

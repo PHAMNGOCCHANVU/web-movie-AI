@@ -65,6 +65,28 @@ class StreamController extends Controller
             return response()->json(['error' => 'stream_unavailable', 'message' => 'Nguồn phát hiện không khả dụng.'], 404);
         }
 
+        $watchedMovie = $user->movies()
+            ->where('movies.id', $movie->id)
+            ->first();
+
+        $existingEpisodeId = $watchedMovie?->pivot?->episode_id;
+        $sameEpisode = $episodeId === null
+            || $existingEpisodeId === null
+            || (int) $existingEpisodeId === (int) $episodeId;
+
+        $historyAttributes = [
+            'watch_progress_seconds' => $sameEpisode
+                ? max(1, (int) ($watchedMovie?->pivot?->watch_progress_seconds ?? 0))
+                : 1,
+            'episode_id' => $episodeId ? (int) $episodeId : $existingEpisodeId,
+        ];
+
+        if ($watchedMovie) {
+            $user->movies()->updateExistingPivot($movie->id, $historyAttributes);
+        } else {
+            $user->movies()->attach($movie->id, $historyAttributes);
+        }
+
         // Increment view count
         $movie->increment('view_count');
 

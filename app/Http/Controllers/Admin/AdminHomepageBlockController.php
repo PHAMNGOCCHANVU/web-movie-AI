@@ -16,7 +16,7 @@ class AdminHomepageBlockController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $blocks
+            'data' => $blocks,
         ], 200);
     }
 
@@ -36,7 +36,7 @@ class AdminHomepageBlockController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Tạo khối trang chủ thành công',
-            'data' => $block
+            'data' => $block,
         ], 201);
     }
 
@@ -44,7 +44,7 @@ class AdminHomepageBlockController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $block = HomepageBlock::find($id);
-        if (!$block) {
+        if (! $block) {
             return response()->json(['status' => 'error', 'message' => 'Không tìm thấy khối trang chủ này'], 404);
         }
 
@@ -61,7 +61,7 @@ class AdminHomepageBlockController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Cập nhật khối trang chủ thành công',
-            'data' => $block
+            'data' => $block,
         ], 200);
     }
 
@@ -69,7 +69,7 @@ class AdminHomepageBlockController extends Controller
     public function destroy(string $id): JsonResponse
     {
         $block = HomepageBlock::find($id);
-        if (!$block) {
+        if (! $block) {
             return response()->json(['status' => 'error', 'message' => 'Không tìm thấy khối trang chủ này'], 404);
         }
 
@@ -77,7 +77,7 @@ class AdminHomepageBlockController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Xóa khối trang chủ thành công'
+            'message' => 'Xóa khối trang chủ thành công',
         ], 200);
     }
 }

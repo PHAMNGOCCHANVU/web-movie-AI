@@ -238,6 +238,50 @@ class UserApiTest extends TestCase
             ->assertJsonPath('data.0.pivot.duration_seconds', 5400);
     }
 
+    public function test_starting_an_embed_stream_records_watch_history_and_preserves_watchlist(): void
+    {
+        $user = $this->authenticatedUser();
+        $plan = $this->createSubscriptionPlan();
+        $user->update([
+            'subscription_plan_id' => $plan->id,
+            'subscription_status' => 'active',
+            'subscription_starts_at' => now(),
+            'subscription_expires_at' => now()->addMonth(),
+        ]);
+
+        $movie = $this->createMovie();
+        $episode = Episode::create([
+            'movie_id' => $movie->id,
+            'server_name' => 'Server Embed',
+            'name' => 'Episode 1',
+            'slug' => 'episode-embed-1',
+            'link_embed' => 'https://example.com/embed/episode-1',
+        ]);
+
+        $user->movies()->attach($movie->id, [
+            'is_favorite' => true,
+            'watch_progress_seconds' => 0,
+        ]);
+
+        $this->getJson("/api/movies/{$movie->id}/stream?episode_id={$episode->id}")
+            ->assertOk()
+            ->assertJsonPath('data.stream_type', 'embed')
+            ->assertJsonPath('data.episode_id', $episode->id);
+
+        $this->assertDatabaseHas('movie_user', [
+            'user_id' => $user->id,
+            'movie_id' => $movie->id,
+            'episode_id' => $episode->id,
+            'watch_progress_seconds' => 1,
+            'is_favorite' => true,
+        ]);
+
+        $this->getJson('/api/user/watch-history')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $movie->id)
+            ->assertJsonPath('data.0.current_episode.id', $episode->id);
+    }
+
     public function test_profile_can_update_phone(): void
     {
         $user = $this->authenticatedUser();

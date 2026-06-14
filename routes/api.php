@@ -1,11 +1,14 @@
 <?php
 
-use App\Http\Controllers\AI\AiChatController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Admin\AdminCommentController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminHomepageBlockController;
+use App\Http\Controllers\Admin\AdminMovieController;
+use App\Http\Controllers\Admin\AdminTransactionController;
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\CommentModerationController;
+use App\Http\Controllers\Admin\OphimSyncController;
+use App\Http\Controllers\AI\AiChatController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Genre\GenreController;
 use App\Http\Controllers\Homepage\HomepageBlockController;
@@ -19,16 +22,8 @@ use App\Http\Controllers\Subscription\VNPayController;
 use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\User\WatchHistoryController;
 use App\Http\Controllers\User\WatchlistController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\AdminMovieController;
-use App\Http\Controllers\Admin\OphimSyncController;
-use App\Http\Controllers\Admin\AdminUserController;
-use App\Http\Controllers\Admin\AdminCommentController;
-use App\Http\Controllers\Admin\AdminTransactionController;
-use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\AdminHomepageBlockController;
-use App\Http\Controllers\Client\MovieController as ClientMovieController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 // === PUBLIC ROUTES ===
 
@@ -68,10 +63,9 @@ Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
 Route::get('/payment/vnpay/return', [VNPayController::class, 'return']);
 Route::match(['get', 'post'], '/payment/vnpay/ipn', [VNPayController::class, 'ipn']);
 
-// === AUTHENTICATED ROUTES ===
 Route::middleware(['auth:sanctum', 'check.locked'])->group(function () {
     // Auth
-    Route::post('/auth/logout', [AuthenticatedSessionController::class, 'destroy']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', function (Request $request) {
         return response()->json([
             'data' => $request->user()->load(['role', 'subscriptionPlan'])
@@ -112,96 +106,50 @@ Route::middleware(['auth:sanctum', 'check.locked'])->group(function () {
     Route::post('/ai/chat', [AiChatController::class, 'chat']);
     Route::get('/ai/chat/history', [AiChatController::class, 'history']);
     Route::delete('/ai/chat/history', [AiChatController::class, 'clearHistory']);
-});
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats']);
+        Route::get('/dashboard/revenue', [AdminDashboardController::class, 'revenue']);
+        Route::get('/dashboard/sentiment', [AdminDashboardController::class, 'sentiment']);
+        Route::get('/dashboard/top-movies', [AdminDashboardController::class, 'topMovies']);
+        Route::get('/movies/top-views', [AdminDashboardController::class, 'topViewedMovies']);
 
-/* API ROUTES CHO USER (Xác thực bằng Sanctum)*/
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+        Route::get('/movies', [AdminMovieController::class, 'index']);
+        Route::post('/movies', [AdminMovieController::class, 'store']);
+        Route::get('/movies/{movie}', [AdminMovieController::class, 'show']);
+        Route::put('/movies/{movie}', [AdminMovieController::class, 'update']);
+        Route::delete('/movies/{movie}', [AdminMovieController::class, 'destroy']);
+        Route::patch('/movies/{movie}/approve', [AdminMovieController::class, 'approve']);
+        Route::patch('/movies/{movie}/reject', [AdminMovieController::class, 'reject']);
+        Route::patch('/movies/{movie}/premium', [AdminMovieController::class, 'togglePremium']);
+        Route::patch('/movies/{movie}/pin', [AdminMovieController::class, 'togglePin']);
+        Route::get('/categories', [AdminMovieController::class, 'categories']);
+        Route::put('/categories/{genre}', [AdminMovieController::class, 'updateCategory']);
 
-/* PUBLIC API ROUTES (Dành cho Frontend User từ admin branch) */
-Route::prefix('client')->group(function () {
-    // 1. Lấy danh sách phim đã duyệt ra trang chủ
-    Route::get('/movies', [ClientMovieController::class, 'getHomeMovies']);
-    
-    // 2. Lấy chi tiết phim và link xem video (m3u8)
-    Route::get('/movies/{id}', [ClientMovieController::class, 'getMovieDetails']);
-});
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{user}', [AdminUserController::class, 'show']);
+        Route::patch('/users/{user}/role', [AdminUserController::class, 'updateRole']);
+        Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus']);
+        Route::patch('/users/{user}/subscription', [AdminUserController::class, 'updateSubscription']);
 
-/* ADMIN API ROUTES */
-Route::middleware(['auth:sanctum', 'check.locked', 'admin'])->prefix('admin')->group(function () {
-    
-    // =========================================================
-    // 9. Đồng bộ dữ liệu phim (ETL - Nguồn Ophim)
-    // =========================================================
-    Route::match(['get', 'post'], '/sync/ophim', [OphimSyncController::class, 'syncMovies']);
-    Route::post('/sync/ophim/movies', [OphimSyncController::class, 'syncMovies']);
-    Route::post('/sync/ophim/genres', [OphimSyncController::class, 'syncGenres']);
+        Route::get('/comments', [AdminCommentController::class, 'index']);
+        Route::patch('/comments/{comment}/approve', [AdminCommentController::class, 'approve']);
+        Route::patch('/comments/{comment}/hide', [AdminCommentController::class, 'hide']);
+        Route::patch('/comments/{comment}/restore', [AdminCommentController::class, 'restore']);
+        Route::delete('/comments/{comment}', [AdminCommentController::class, 'destroy']);
+        Route::get('/comments/{comment}/sentiment', [AdminCommentController::class, 'sentiment']);
 
-    // =========================================================
-    // 11. Admin - Movie Management (Quản lý Phim & Kiểm duyệt)
-    // =========================================================
-    Route::get('/movies', [AdminMovieController::class, 'getAllMovies']);        // Lấy danh sách phim (có thể lọc theo status)
-    Route::post('/movies', [AdminMovieController::class, 'createMovie']);        // Thêm phim mới
-    Route::put('/movies/{id}', [AdminMovieController::class, 'updateMovie']);    // Sửa thông tin phim
-    Route::delete('/movies/{id}', [AdminMovieController::class, 'deleteMovie']); // Xóa phim
+        Route::get('/transactions', [AdminTransactionController::class, 'index']);
+        Route::get('/transactions/{id}', [AdminTransactionController::class, 'show']);
 
-    // Thao tác nhanh với phim (Bật/tắt trạng thái)
-    Route::patch('/movies/{id}/premium', [AdminMovieController::class, 'togglePremium']); // Bật/tắt trả phí
-    Route::patch('/movies/{id}/pin', [AdminMovieController::class, 'togglePin']);         // Ghim/Gỡ ghim trang chủ
+        Route::get('/homepage-blocks', [AdminHomepageBlockController::class, 'index']);
+        Route::post('/homepage-blocks', [AdminHomepageBlockController::class, 'store']);
+        Route::put('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'update']);
+        Route::delete('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'destroy']);
 
-    // BƯỚC 2 WORKFLOW: KIỂM DUYỆT PHIM
-    Route::patch('/movies/{id}/approve', [AdminMovieController::class, 'approveMovie']); // Duyệt phim
-    Route::delete('/movies/{id}/reject', [AdminMovieController::class, 'rejectMovie']);  // Từ chối (xóa) phim
+        Route::post('/sync/ophim/movies', [OphimSyncController::class, 'movies']);
+        Route::post('/sync/ophim/genres', [OphimSyncController::class, 'genres']);
 
-    // =========================================================
-    // 11b. Admin - Category Management (Quản lý Thể loại)
-    // =========================================================
-    Route::get('/categories', [AdminMovieController::class, 'getCategories']);       // Lấy danh sách thể loại
-    Route::put('/categories/{id}', [AdminMovieController::class, 'updateCategory']); // Sửa tên thể loại
-
-    // =========================================================
-    // 11c. Admin - Homepage Block Management (Quản lý Khối trang chủ)
-    // =========================================================
-    Route::get('/homepage-blocks', [AdminHomepageBlockController::class, 'index']);
-    Route::post('/homepage-blocks', [AdminHomepageBlockController::class, 'store']);
-    Route::put('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'update']);
-    Route::delete('/homepage-blocks/{id}', [AdminHomepageBlockController::class, 'destroy']);
-
-    // =========================================================
-    // 12. Admin - User Management (Quản lý Người dùng)
-    // =========================================================
-    Route::get('/users', [AdminUserController::class, 'index']);               // 1. Get All Users
-    Route::get('/users/{id}', [AdminUserController::class, 'show']);           // 2. Get User Detail
-    Route::patch('/users/{id}/role', [AdminUserController::class, 'updateRole']);   // 3. Change User Role
-    Route::patch('/users/{id}/status', [AdminUserController::class, 'updateStatus']); // 4. Lock/Unlock User
-    Route::patch('/users/{id}/subscription', [AdminUserController::class, 'updateSubscription']); // 5. Update Subscription
-
-    // =========================================================
-    // 13. Admin - Comment Moderation (Duyệt bình luận)
-    // =========================================================
-    Route::get('/comments', [AdminCommentController::class, 'index']);                        // Lấy danh sách
-    Route::patch('/comments/{id}/approve', [AdminCommentController::class, 'approve']);       // Duyệt
-    Route::patch('/comments/{id}/hide', [AdminCommentController::class, 'hide']);             // Ẩn
-    Route::patch('/comments/{id}/restore', [AdminCommentController::class, 'restore']);       // Khôi phục
-    Route::delete('/comments/{id}', [AdminCommentController::class, 'destroy']);              // Xóa
-    Route::get('/comments/{id}/sentiment', [AdminCommentController::class, 'sentimentAnalysis']); // AI Sentiment
-
-    // Comment Moderation (backend-2)
-    Route::get('/comment-moderation', [CommentModerationController::class, 'index']);
-    Route::patch('/comment-moderation/{comment}', [CommentModerationController::class, 'review']);
-
-    // =========================================================
-    // 14. Admin - Transaction Management (Lịch sử Giao dịch)
-    // =========================================================
-    Route::get('/transactions', [AdminTransactionController::class, 'index']);      // Lấy danh sách
-    Route::get('/transactions/{id}', [AdminTransactionController::class, 'show']);  // Xem chi tiết
-
-    // =========================================================
-    // 10. Admin - Dashboard (Thống kê Tổng quan)
-    // =========================================================
-    Route::get('/dashboard/stats', [AdminDashboardController::class, 'getStats']);
-    Route::get('/dashboard/revenue', [AdminDashboardController::class, 'getRevenue']);
-    Route::get('/dashboard/sentiment', [AdminDashboardController::class, 'getSentimentOverview']);
-    Route::get('/dashboard/top-movies', [AdminDashboardController::class, 'getTopMovies']);
+        Route::get('/comment-moderation', [CommentModerationController::class, 'index']);
+        Route::patch('/comment-moderation/{comment}', [CommentModerationController::class, 'review']);
+    });
 });

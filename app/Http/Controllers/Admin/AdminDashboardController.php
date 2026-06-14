@@ -3,96 +3,86 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\Comment;
 use App\Models\Movie;
 use App\Models\Transaction;
-use App\Models\Comment;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminDashboardController extends Controller
 {
-    // API 1: Thống kê tổng quan (Dashboard Stats)
-    public function getStats()
+    public function stats(): JsonResponse
     {
-        $totalUsers = User::count();
-        $totalMovies = Movie::count();
-        $totalRevenue = Transaction::where('status', 'success')->sum('amount');
-        $totalComments = Comment::count();
-
         return response()->json([
             'status' => 'success',
             'data' => [
-                'total_users' => $totalUsers,
-                'total_movies' => $totalMovies,
-                'total_revenue' => $totalRevenue,
-                'total_comments' => $totalComments
-            ]
-        ], 200);
+                'total_users' => User::count(),
+                'total_movies' => Movie::count(),
+                'total_revenue' => Transaction::where('status', 'success')->sum('amount'),
+                'total_comments' => Comment::count(),
+            ],
+        ]);
     }
 
-    // API 2: Thống kê doanh thu theo thời gian (Revenue Stats)
-    public function getRevenue(Request $request)
+    public function revenue(Request $request): JsonResponse
     {
-        $from = $request->input('from', now()->startOfYear());
-        $to = $request->input('to', now()->endOfYear());
-        $period = $request->input('period', 'monthly'); // daily, monthly, yearly
+        $validated = $request->validate([
+            'period' => ['nullable', 'in:daily,monthly,yearly'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+        ]);
+        $period = $validated['period'] ?? 'monthly';
 
-        // Lấy tất cả giao dịch thành công trong khoảng thời gian
         $transactions = Transaction::where('status', 'success')
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
+            ->when($validated['from'] ?? null, fn ($q, $from) => $q->whereDate('created_at', '>=', $from))
+            ->when($validated['to'] ?? null, fn ($q, $to) => $q->whereDate('created_at', '<=', $to))
             ->get();
 
-        // Sử dụng Laravel Collection để nhóm dữ liệu an toàn mà không sợ lỗi SQL
-        $revenueData = $transactions->groupBy(function ($item) use ($period) {
-            if ($period === 'daily') return $item->created_at->format('Y-m-d');
-            if ($period === 'yearly') return $item->created_at->format('Y');
-            return $item->created_at->format('Y-m'); // Mặc định là monthly
-        })->map(function ($row) {
-            return $row->sum('amount');
-        });
+        $data = $transactions->groupBy(fn ($transaction) => match ($period) {
+            'daily' => $transaction->created_at->format('Y-m-d'),
+            'yearly' => $transaction->created_at->format('Y'),
+            default => $transaction->created_at->format('Y-m'),
+        })->map->sum('amount');
 
-        return response()->json([
-            'status' => 'success',
-            'period' => $period,
-            'data' => $revenueData
-        ], 200);
+        return response()->json(['status' => 'success', 'data' => $data]);
     }
 
-    // API 3: Thống kê tổng quan AI Sentiment
-    public function getSentimentOverview()
+    public function sentiment(): JsonResponse
     {
-        // Đếm số lượng bình luận theo từng mức độ Toxic (từ AI)
-        $positive = Comment::where('toxic_score', '<', 0.4)->count();
-        $neutral = Comment::whereBetween('toxic_score', [0.4, 0.7])->count();
-        $toxic = Comment::where('toxic_score', '>', 0.7)->count();
-        $unprocessed = Comment::whereNull('toxic_score')->count(); // Chưa được AI quét
+        $counts = Comment::query()
+            ->selectRaw("SUM(moderation_status = 'approved') AS positive_safe")
+            ->selectRaw("SUM(moderation_status = 'pending_review') AS neutral_warning")
+            ->selectRaw("SUM(moderation_status = 'hidden') AS toxic_danger")
+            ->first();
 
         return response()->json([
             'status' => 'success',
             'data' => [
-                'positive_safe' => $positive,
-                'neutral_warning' => $neutral,
-                'toxic_danger' => $toxic,
-                'unprocessed' => $unprocessed
-            ]
-        ], 200);
+                'positive_safe' => (int) ($counts->positive_safe ?? 0),
+                'neutral_warning' => (int) ($counts->neutral_warning ?? 0),
+                'toxic_danger' => (int) ($counts->toxic_danger ?? 0),
+            ],
+        ]);
     }
 
-    // API 4: Bảng xếp hạng phim Hot (Nhiều bình luận nhất)
-    public function getTopMovies(Request $request)
+    public function topMovies(Request $request): JsonResponse
     {
-        $limit = $request->input('limit', 10);
-
-        // withCount('comments') sẽ tự động đếm số lượng bình luận của mỗi phim
-        $topMovies = Movie::withCount('comments')
-            ->orderBy('comments_count', 'desc')
-            ->take($limit)
-            ->get();
+        $limit = min(max((int) $request->input('limit', 5), 1), 20);
 
         return response()->json([
             'status' => 'success',
-            'data' => $topMovies
-        ], 200);
+            'data' => Movie::withCount('comments')->orderByDesc('comments_count')->limit($limit)->get(),
+        ]);
+    }
+
+    public function topViewedMovies(Request $request): JsonResponse
+    {
+        $limit = min(max((int) $request->input('limit', 5), 1), 20);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => Movie::orderByDesc('view_count')->limit($limit)->get(['id', 'name', 'view_count']),
+        ]);
     }
 }

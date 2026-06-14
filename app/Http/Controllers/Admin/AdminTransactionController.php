@@ -33,7 +33,7 @@ class AdminTransactionController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $transactions
+            'data' => $transactions,
         ], 200);
     }
 
@@ -42,13 +42,13 @@ class AdminTransactionController extends Controller
     {
         $transaction = Transaction::with('user')->find($id);
 
-        if (!$transaction) {
+        if (! $transaction) {
             return response()->json(['status' => 'error', 'message' => 'Không tìm thấy giao dịch'], 404);
         }
 
         return response()->json([
             'status' => 'success',
-            'data' => $transaction
+            'data' => $transaction,
         ], 200);
     }
 }

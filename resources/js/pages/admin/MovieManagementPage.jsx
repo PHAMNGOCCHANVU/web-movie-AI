@@ -8,6 +8,7 @@ import AdminModal from '../../components/admin/AdminModal';
 import { useAdminToast } from './AdminLayout';
 import { Link } from 'react-router-dom';
 import { Edit2, Trash2, CheckCircle, XCircle, Pin, Crown } from 'lucide-react';
+import { movieImage } from '../../utils';
 
 export default function MovieManagementPage() {
     const { showToast } = useAdminToast();
@@ -86,7 +87,7 @@ export default function MovieManagementPage() {
             accessor: 'name',
             render: (row) => (
                 <div className="flex items-center gap-3">
-                    <img src={row.poster_url} alt={row.name} className="w-10 h-14 object-cover rounded" />
+                    <img src={movieImage(row)} alt={row.name} className="w-10 h-14 object-cover rounded" />
                     <div>
                         <div className="font-medium text-white">{row.name}</div>
                         <div className="text-xs text-zinc-500">{row.origin_name}</div>

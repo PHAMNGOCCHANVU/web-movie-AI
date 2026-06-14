@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { useAdminToast } from './AdminLayout';
 import { ArrowLeft, Save } from 'lucide-react';
+import { movieImage } from '../../utils';
 
 export default function MovieFormPage() {
     const { id } = useParams();
@@ -114,8 +115,8 @@ export default function MovieFormPage() {
 
                     <div>
                         <label className="block text-sm font-medium text-zinc-400 mb-1">Poster URL *</label>
-                        <input required type="url" value={formData.poster_url} onChange={e => setFormData({...formData, poster_url: e.target.value})} className="w-full bg-[#101521] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-[#E50914] outline-none mb-2" />
-                        {formData.poster_url && <img src={formData.poster_url} alt="Preview" className="h-40 rounded object-cover" />}
+                        <input required type="text" value={formData.poster_url} onChange={e => setFormData({...formData, poster_url: e.target.value})} className="w-full bg-[#101521] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-[#E50914] outline-none mb-2" />
+                        {formData.poster_url && <img src={movieImage({ poster_url: formData.poster_url }, 'backdrop')} alt="Preview" className="h-40 rounded object-cover" />}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400 mb-1">Trailer URL (YouTube embed)</label>
